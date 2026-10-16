@@ -40,8 +40,8 @@ class B3ArchitectureTest(unittest.TestCase):
 
     def test_default_data_prefers_xlsx_files(self):
         base_dir = Path(__file__).resolve().parents[1]
-        movimentacao_xlsx = base_dir / "xlsx" / "movimentacao" / "movimentacao-2026-10-16-18-13-17.xlsx"
-        posicao_xlsx = base_dir / "xlsx" / "posicao" / "posicao-2026-10-16-18-23-46.xlsx"
+        movimentacao_xlsx = sorted((base_dir / "xlsx" / "movimentacao").glob("*.xlsx"))[-1]
+        posicao_xlsx = sorted((base_dir / "xlsx" / "posicao").glob("*.xlsx"))[-1]
 
         with patch.object(app, "read_movimentacao_file", side_effect=lambda path: pd.DataFrame({"data": [pd.Timestamp("2026-10-16")], "valor_operacao": [1.0]})) as mock_mov:
             app.load_default_movimentacao()
@@ -63,6 +63,9 @@ class B3ColumnsAndParsingTest(unittest.TestCase):
     def test_parse_money_handles_brazilian_formats(self):
         self.assertEqual(parse_money("R$ 1.234,56"), 1234.56)
         self.assertEqual(parse_money("1.000,00"), 1000.0)
+        self.assertEqual(parse_money(30.78), 30.78)
+        self.assertEqual(parse_money(92.34), 92.34)
+        self.assertEqual(parse_money(102.5), 102.5)
         self.assertTrue(pd.isna(parse_money("")))
 
     def test_aliases_match_real_b3_headers(self):
@@ -105,6 +108,102 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
         self.assertEqual(resumo["ACOES"], 100)
         self.assertEqual(resumo["BDR"], 80)
         self.assertEqual(resumo["TESOURO"], 50)
+
+    def test_compute_preco_medio_keeps_liquidacao_rows_and_matches_broker_reference(self):
+        df = pd.DataFrame(
+            {
+                "produto": ["GOGL35", "GOGL35", "CPFE3", "CPFE3", "PETR4", "PETR4"],
+                "data": [
+                    "2021-11-10",
+                    "2021-11-26",
+                    "2024-01-02",
+                    "2024-01-03",
+                    "2024-01-04",
+                    "2024-01-05",
+                ],
+                "qtd_liquida": [5, 12, 1, 2, 10, 13],
+                "valor_liquido": [318.90, 765.36, 30.78, 61.56, 326.13, 423.96],
+                "movimentacao": [
+                    "transferência - liquidação",
+                    "transferência - liquidação",
+                    "compra",
+                    "compra",
+                    "compra",
+                    "compra",
+                ],
+                "entrada_saida": ["credito", "credito", "credito", "credito", "credito", "credito"],
+            }
+        )
+
+        result = compute_preco_medio(df)
+        googl = result[result["produto"] == "GOGL35"].iloc[0]
+        cpfe = result[result["produto"] == "CPFE3"].iloc[0]
+        petr = result[result["produto"] == "PETR4"].iloc[0]
+
+        self.assertAlmostEqual(googl["quantidade"], 17.0)
+        self.assertAlmostEqual(googl["custo_total"], 1084.26)
+        self.assertAlmostEqual(googl["preco_medio"], 63.78, places=2)
+        self.assertAlmostEqual(cpfe["preco_medio"], 30.78, places=2)
+        self.assertAlmostEqual(petr["preco_medio"], 32.61, places=2)
+
+    def test_classificacao_movimentacao_distinguishes_proventos_e_ajustes(self):
+        from dashboard.models.movimentacao import TipoMovimentacao, classificar_movimentacao
+
+        self.assertEqual(classificar_movimentacao("dividendo"), TipoMovimentacao.PROVENTO)
+        self.assertEqual(classificar_movimentacao("desdobro de ações"), TipoMovimentacao.DESDOBRAMENTO)
+        self.assertEqual(classificar_movimentacao("grupamento"), TipoMovimentacao.GRUPAMENTO)
+        self.assertEqual(classificar_movimentacao("compra"), TipoMovimentacao.COMPRA)
+        self.assertEqual(classificar_movimentacao("venda"), TipoMovimentacao.VENDA)
+        self.assertEqual(classificar_movimentacao("leilão de fração"), TipoMovimentacao.AJUSTE_QUANTIDADE)
+
+    def test_compute_preco_medio_googl35_handles_corporate_events(self):
+        df = pd.DataFrame(
+            {
+                "produto": ["GOGL35"] * 8,
+                "data": [
+                    "2021-11-10",
+                    "2021-11-26",
+                    "2021-11-30",
+                    "2022-01-07",
+                    "2022-01-24",
+                    "2022-01-25",
+                    "2022-01-28",
+                    "2022-09-09",
+                ],
+                "movimentacao": [
+                    "transferência - liquidação",
+                    "transferência - liquidação",
+                    "transferência - liquidação",
+                    "transferência - liquidação",
+                    "transferência - liquidação",
+                    "transferência - liquidação",
+                    "transferência - liquidação",
+                    "leilão de fração",
+                ],
+                "entrada_saida": ["credito"] * 8,
+                "qtd_liquida": [1, 1, 1, 2, 2, 3, 1, 0.6],
+                "valor_liquido": [111.52, 109.07, 107.25, 214.06, 198.60, 288.00, 94.00, 27.62],
+            }
+        )
+
+        split_df = pd.DataFrame(
+            {
+                "produto": ["GOGL35", "GOGL35", "GOGL35"],
+                "data": ["2022-07-19", "2022-08-30", "2022-08-31"],
+                "movimentacao": ["desdobro", "grupamento", "fração em ativos"],
+                "entrada_saida": ["credito", "credito", "debito"],
+                "qtd_liquida": [209.0, 17.6, -0.6],
+                "valor_liquido": [None, None, None],
+            }
+        )
+
+        df = pd.concat([df, split_df], ignore_index=True)
+        result = compute_preco_medio(df)
+        googl = result[result["produto"] == "GOGL35"].iloc[0]
+
+        self.assertAlmostEqual(googl["quantidade"], 17.6, places=5)
+        self.assertAlmostEqual(googl["custo_total"], 1150.12, places=2)
+        self.assertAlmostEqual(googl["preco_medio"], 65.35, places=2)
 
     def test_compute_position_categoria_uses_sheet_category_when_available(self):
         df = pd.DataFrame(
@@ -194,8 +293,9 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
         self.assertAlmostEqual(petr["preco_medio"], 20.0)
 
     def test_read_b3_file_dispatches_csv_and_xlsx(self):
-        csv_path = Path(__file__).resolve().parents[1] / "csv" / "movimentacao-2026-10-16-18-13-17.csv"
-        xlsx_path = sorted((Path(__file__).resolve().parents[1] / "xlsx" / "posicao").glob("*.xlsx"))[-1]
+        base_dir = Path(__file__).resolve().parents[1]
+        csv_path = sorted((base_dir / "csv").glob("*.csv"))[-1]
+        xlsx_path = sorted((base_dir / "xlsx" / "posicao").glob("*.xlsx"))[-1]
 
         csv_df = read_b3_file(csv_path)
         xlsx_df = read_b3_file(xlsx_path)

@@ -15,50 +15,28 @@ except ImportError:  # pragma: no cover
     from metrics import compute_dy, compute_evolucao, compute_position, compute_position_categoria, compute_position_por_categoria, compute_proventos
 
 
-@st.cache_data
 def load_default_movimentacao():
     base_dir = Path(__file__).resolve().parents[1]
-    candidates = [
-        base_dir / "xlsx" / "movimentacao" / "movimentacao-2026-10-16-18-13-17.xlsx",
-        *sorted((base_dir / "xlsx" / "movimentacao").glob("*.xlsx"), key=lambda item: item.name, reverse=True),
-        *sorted((base_dir / "xlsx").glob("*.xlsx"), key=lambda item: item.name, reverse=True),
-    ]
-    for path in candidates:
-        if path.exists():
-            try:
-                return read_movimentacao_file(path)
-            except Exception:
-                continue
+    data_dir = base_dir / "xlsx" / "movimentacao"
+    csv_dir = base_dir / "csv"
 
-    csv_candidates = [
-        base_dir / "csv" / "movimentacao-2026-10-16-18-13-17.csv",
-        base_dir / "movimentacao-2026-10-16-18-13-17.csv",
-        *sorted((base_dir / "csv").glob("*.csv"), key=lambda item: item.name, reverse=True),
-    ]
-    for path in csv_candidates:
-        if path.exists():
-            try:
-                return read_movimentacao_file(path)
-            except Exception:
-                continue
+    for folder, prefix in [(data_dir, "movimentacao"), (base_dir / "xlsx", "movimentacao"), (csv_dir, "movimentacao")]:
+        path = __import__("dashboard.loader", fromlist=["find_latest"]).find_latest(folder, prefix)
+        if path is not None:
+            return read_movimentacao_file(path)
 
     return pd.DataFrame()
 
 
-@st.cache_data
 def load_default_posicao():
     base_dir = Path(__file__).resolve().parents[1]
-    candidates = [
-        base_dir / "xlsx" / "posicao" / "posicao-2026-10-16-18-23-46.xlsx",
-        *sorted((base_dir / "xlsx" / "posicao").glob("*.xlsx"), key=lambda item: item.name, reverse=True),
-        *sorted((base_dir / "xlsx").glob("*.xlsx"), key=lambda item: item.name, reverse=True),
-    ]
-    for path in candidates:
-        if path.exists():
-            try:
-                return read_posicao_file(path)
-            except Exception:
-                continue
+    data_dir = base_dir / "xlsx" / "posicao"
+
+    for folder, prefix in [(data_dir, "posicao"), (base_dir / "xlsx", "posicao")]:
+        path = __import__("dashboard.loader", fromlist=["find_latest"]).find_latest(folder, prefix)
+        if path is not None:
+            return read_posicao_file(path)
+
     return pd.DataFrame()
 
 

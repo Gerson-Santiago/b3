@@ -1,28 +1,6 @@
 import pandas as pd
 
-
-def _is_evento_corporativo(movimentacao):
-    texto = str(movimentacao or "").lower()
-    padroes = [
-        "transferência",
-        "transferencia",
-        "liquidação",
-        "liquidacao",
-        "bonificação",
-        "bonificacao",
-        "desdobramento",
-        "desdobr",
-        "split",
-        "grupamento",
-        "amortização",
-        "amortizacao",
-        "dividendo",
-        "jcp",
-        "juros",
-        "rendimento",
-        "provento",
-    ]
-    return any(padrao in texto for padrao in padroes)
+from dashboard.models.movimentacao import is_ajuste_quantidade, is_provento
 
 
 def compute_preco_medio(df):
@@ -30,32 +8,118 @@ def compute_preco_medio(df):
         return pd.DataFrame(columns=["produto", "quantidade", "custo_total", "preco_medio"])
 
     base = df.copy()
-    if "produto" not in base.columns or "valor_operacao" not in base.columns:
+    if "produto" not in base.columns:
         return pd.DataFrame(columns=["produto", "quantidade", "custo_total", "preco_medio"])
+
+    if "valor_liquido" not in base.columns:
+        if "valor_operacao" not in base.columns:
+            return pd.DataFrame(columns=["produto", "quantidade", "custo_total", "preco_medio"])
+        base["valor_liquido"] = base["valor_operacao"]
 
     if "qtd_liquida" not in base.columns:
         if "quantidade" not in base.columns:
             return pd.DataFrame(columns=["produto", "quantidade", "custo_total", "preco_medio"])
 
         if "entrada_saida" in base.columns:
-            sinal = (
-                base["entrada_saida"].fillna("").astype(str).str.lower().map({"credito": 1, "crédito": 1, "debito": -1, "débito": -1}).fillna(0)
-            )
-            base["qtd_liquida"] = base["quantidade"].fillna(0) * sinal
+            sinal = base["entrada_saida"].fillna("").astype(str).str.lower().map({"credito": 1, "crédito": 1, "debito": -1, "débito": -1}).fillna(0)
+            base["qtd_liquida"] = pd.to_numeric(base["quantidade"], errors="coerce").fillna(0) * sinal
         else:
-            base["qtd_liquida"] = base["quantidade"].fillna(0).clip(lower=0)
+            base["qtd_liquida"] = pd.to_numeric(base["quantidade"], errors="coerce").fillna(0).clip(lower=0)
 
-    if "movimentacao" in base.columns:
-        compras = base.loc[
-            (base["qtd_liquida"].fillna(0) > 0)
-            & ~base["movimentacao"].fillna("").astype(str).apply(_is_evento_corporativo)
-        ].copy()
-    else:
-        compras = base.loc[base["qtd_liquida"].fillna(0) > 0].copy()
+    base["qtd_liquida"] = pd.to_numeric(base["qtd_liquida"], errors="coerce").fillna(0)
+    base["valor_liquido"] = pd.to_numeric(base["valor_liquido"], errors="coerce").fillna(0)
 
-    if compras.empty:
+    if "data" in base.columns:
+        base = base.sort_values(["produto", "data"], kind="mergesort", na_position="last")
+
+    linhas = []
+    for produto, grupo in base.groupby("produto", sort=False):
+        quantidade_atual = 0.0
+        custo_total = 0.0
+
+        for _, row in grupo.iterrows():
+            movimentacao = str(row.get("movimentacao") or "").lower()
+            qtd_liquida = float(row.get("qtd_liquida", 0.0) or 0.0)
+            valor_liquido = float(row.get("valor_liquido", 0.0) or 0.0)
+
+            if is_provento(movimentacao):
+                continue
+
+            if abs(qtd_liquida) < 1e-9:
+                continue
+
+            if is_ajuste_quantidade(movimentacao):
+                tokens = [
+                    "desdobro",
+                    "split",
+                    "grupamento",
+                    "bonificacao",
+                    "amortizacao",
+                ]
+                frac_tokens = ["fracao", "fração", "leilao", "leilão"]
+                texto = movimentacao.lower()
+
+                if any(token in texto for token in tokens):
+                    quantidade_atual = abs(qtd_liquida) if abs(qtd_liquida) > 0 else quantidade_atual
+                    continue
+
+                if any(token in texto for token in frac_tokens):
+                    if qtd_liquida < 0:
+                        quantidade_atual += qtd_liquida
+                        if quantidade_atual < 0:
+                            quantidade_atual = 0.0
+                        continue
+
+                    if qtd_liquida > 0 and pd.notna(valor_liquido):
+                        quantidade_atual += qtd_liquida
+                        custo_total += abs(valor_liquido)
+                        continue
+
+                quantidade_atual += qtd_liquida
+                if quantidade_atual < 0:
+                    quantidade_atual = 0.0
+                if quantidade_atual == 0:
+                    custo_total = 0.0
+                continue
+
+            if qtd_liquida > 0:
+                quantidade_atual += qtd_liquida
+                custo_total += abs(valor_liquido)
+                continue
+
+            if qtd_liquida < 0:
+                quantidade_vendida = abs(qtd_liquida)
+                if quantidade_atual <= 0:
+                    quantidade_atual = 0.0
+                    custo_total = 0.0
+                    continue
+
+                if quantidade_vendida >= quantidade_atual:
+                    quantidade_atual = 0.0
+                    custo_total = 0.0
+                    continue
+
+                custo_unitario = custo_total / quantidade_atual if quantidade_atual else 0.0
+                custo_total -= quantidade_vendida * custo_unitario
+                quantidade_atual -= quantidade_vendida
+
+        if quantidade_atual > 0:
+            preco_medio = custo_total / quantidade_atual
+        else:
+            preco_medio = 0.0
+
+        linhas.append(
+            {
+                "produto": produto,
+                "quantidade": quantidade_atual,
+                "custo_total": custo_total,
+                "preco_medio": preco_medio,
+            }
+        )
+
+    if not linhas:
         return pd.DataFrame(columns=["produto", "quantidade", "custo_total", "preco_medio"])
 
-    resumo = compras.groupby("produto", as_index=False).agg(quantidade=("qtd_liquida", "sum"), custo_total=("valor_operacao", "sum"))
-    resumo["preco_medio"] = (resumo["custo_total"] / resumo["quantidade"]).replace([float("inf"), float("-inf")], pd.NA)
-    return resumo.sort_values("preco_medio", ascending=False)
+    resumo = pd.DataFrame(linhas, columns=["produto", "quantidade", "custo_total", "preco_medio"])
+    resumo = resumo.sort_values("preco_medio", ascending=False, kind="mergesort")
+    return resumo.reset_index(drop=True)
