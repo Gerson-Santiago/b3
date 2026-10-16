@@ -19,9 +19,9 @@ except ImportError:  # pragma: no cover
 def load_default_movimentacao():
     base_dir = Path(__file__).resolve().parents[1]
     candidates = [
-        base_dir / "csv" / "movimentacao-2026-10-16-18-13-17.csv",
-        base_dir / "movimentacao-2026-10-16-18-13-17.csv",
-        *sorted((base_dir / "csv").glob("*.csv")),
+        base_dir / "xlsx" / "movimentacao" / "movimentacao-2026-10-16-18-13-17.xlsx",
+        *sorted((base_dir / "xlsx" / "movimentacao").glob("*.xlsx"), key=lambda item: item.name, reverse=True),
+        *sorted((base_dir / "xlsx").glob("*.xlsx"), key=lambda item: item.name, reverse=True),
     ]
     for path in candidates:
         if path.exists():
@@ -29,6 +29,19 @@ def load_default_movimentacao():
                 return read_movimentacao_file(path)
             except Exception:
                 continue
+
+    csv_candidates = [
+        base_dir / "csv" / "movimentacao-2026-10-16-18-13-17.csv",
+        base_dir / "movimentacao-2026-10-16-18-13-17.csv",
+        *sorted((base_dir / "csv").glob("*.csv"), key=lambda item: item.name, reverse=True),
+    ]
+    for path in csv_candidates:
+        if path.exists():
+            try:
+                return read_movimentacao_file(path)
+            except Exception:
+                continue
+
     return pd.DataFrame()
 
 
@@ -36,10 +49,11 @@ def load_default_movimentacao():
 def load_default_posicao():
     base_dir = Path(__file__).resolve().parents[1]
     candidates = [
-        *sorted((base_dir / "xlsx" / "posicao").glob("*.xlsx")),
-        *sorted((base_dir / "xlsx").glob("*.xlsx")),
+        base_dir / "xlsx" / "posicao" / "posicao-2026-10-16-18-23-46.xlsx",
+        *sorted((base_dir / "xlsx" / "posicao").glob("*.xlsx"), key=lambda item: item.name, reverse=True),
+        *sorted((base_dir / "xlsx").glob("*.xlsx"), key=lambda item: item.name, reverse=True),
     ]
-    for path in sorted(candidates, key=lambda item: item.name, reverse=True):
+    for path in candidates:
         if path.exists():
             try:
                 return read_posicao_file(path)
@@ -53,7 +67,7 @@ def main():
     st.title("Dashboard de Investimentos B3")
 
     st.sidebar.header("Arquivos")
-    uploaded_mov = st.sidebar.file_uploader("Movimentação (CSV/XLSX)", type=["csv", "xlsx", "xls"], key="movimentacao")
+    uploaded_mov = st.sidebar.file_uploader("Movimentação (XLSX)", type=["xlsx", "xls"], key="movimentacao")
     uploaded_pos = st.sidebar.file_uploader("Posição (XLSX)", type=["xlsx", "xls"], key="posicao")
 
     mov_df = read_movimentacao_file(uploaded_mov) if uploaded_mov is not None else load_default_movimentacao()

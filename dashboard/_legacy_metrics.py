@@ -36,7 +36,8 @@ def compute_position(df):
         .agg(quantidade=("qtd_liquida", "sum"), valor=("valor_liquido", "sum"))
     )
     pos = pos[pos["quantidade"].abs() > 0].sort_values("valor", key=lambda s: s.abs(), ascending=False)
-    pos["valor_abs"] = pos["valor"].abs()
+    pos["valor"] = pos["valor"].round(2)
+    pos["valor_abs"] = pos["valor"].abs().round(2)
     return pos
 
 
@@ -45,8 +46,14 @@ def compute_position_categoria(df):
     if pos.empty:
         return pd.DataFrame(columns=["categoria", "valor", "quantidade"])
 
-    pos["categoria"] = pos["produto"].apply(classificar_ativo)
+    if "categoria" in df.columns:
+        categoria_map = df[["produto", "categoria"]].drop_duplicates().set_index("produto")["categoria"]
+        pos["categoria"] = pos["produto"].map(categoria_map).fillna(pos["produto"].apply(classificar_ativo))
+    else:
+        pos["categoria"] = pos["produto"].apply(classificar_ativo)
+
     resumo = pos.groupby("categoria", as_index=False).agg(valor=("valor_abs", "sum"), quantidade=("quantidade", "sum"))
+    resumo["valor"] = resumo["valor"].round(2)
     return resumo.sort_values("valor", ascending=False)
 
 
@@ -55,7 +62,12 @@ def compute_position_por_categoria(df, categoria):
     if pos.empty:
         return pos
 
-    pos["categoria"] = pos["produto"].apply(classificar_ativo)
+    if "categoria" in df.columns:
+        categoria_map = df[["produto", "categoria"]].drop_duplicates().set_index("produto")["categoria"]
+        pos["categoria"] = pos["produto"].map(categoria_map).fillna(pos["produto"].apply(classificar_ativo))
+    else:
+        pos["categoria"] = pos["produto"].apply(classificar_ativo)
+
     return pos[pos["categoria"].eq(categoria)].sort_values("valor_abs", ascending=False)
 
 
