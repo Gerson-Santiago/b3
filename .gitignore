@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+
+# Project data / local artifacts
+csv/
+xlsx/
+*.csv
+*.xlsx
+*.xls
+
+# Fork project local content
+fork/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Streamlit / runtime
+.streamlit/
+
+# Logs
+*.log
