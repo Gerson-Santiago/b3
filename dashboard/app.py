@@ -168,22 +168,59 @@ def main():
         if pos.empty:
             st.info("Nenhum ativo encontrado para os filtros selecionados.")
         else:
+            separar_bdr_acoes = st.toggle(
+                "Separar BDR e Ações no gráfico de alocação",
+                value=False,
+                key="toggle_separar_bdr_acoes",
+            )
+
+            if separar_bdr_acoes:
+                pos_categoria_exibida = pos_categoria.copy()
+            else:
+                # Agrupa BDR + AÇÕES como "Bolsa de Valores" (padrão)
+                pos_cat_agrupada = pos_categoria.copy()
+                pos_cat_agrupada["categoria"] = pos_cat_agrupada["categoria"].replace(
+                    {"AÇÕES": "Bolsa de Valores", "BDR": "Bolsa de Valores"}
+                )
+                pos_categoria_exibida = (
+                    pos_cat_agrupada
+                    .groupby("categoria", as_index=False)
+                    .agg(valor=("valor", "sum"), quantidade=("quantidade", "sum"))
+                    .sort_values("valor", ascending=False)
+                )
+
             col_pie1, col_pie2 = st.columns(2)
             with col_pie1:
                 st.plotly_chart(pie_carteira(pos), width="stretch")
             with col_pie2:
-                st.plotly_chart(pie_carteira_por_categoria(pos_categoria), width="stretch")
+                st.plotly_chart(pie_carteira_por_categoria(pos_categoria_exibida), width="stretch")
 
             st.markdown("### Posição Detalhada em Custódia")
 
             pos_acoes_bdr = pos[pos["categoria"].isin(["AÇÕES", "BDR"])].sort_values("produto")
             pos_tesouro = pos[pos["categoria"] == "TESOURO"].sort_values("produto")
 
-            st.markdown("#### 📈 Ações e BDR")
-            if pos_acoes_bdr.empty:
-                st.info("Nenhum ativo de Ações ou BDR em custódia.")
+            if separar_bdr_acoes:
+                pos_acoes = pos[pos["categoria"] == "AÇÕES"].sort_values("produto")
+                pos_bdr = pos[pos["categoria"] == "BDR"].sort_values("produto")
+
+                st.markdown("#### 📈 Ações")
+                if pos_acoes.empty:
+                    st.info("Nenhum ativo de Ações em custódia.")
+                else:
+                    st.dataframe(pos_acoes, width="stretch")
+
+                st.markdown("#### 🌎 BDR")
+                if pos_bdr.empty:
+                    st.info("Nenhum BDR em custódia.")
+                else:
+                    st.dataframe(pos_bdr, width="stretch")
             else:
-                st.dataframe(pos_acoes_bdr, width="stretch")
+                st.markdown("#### 📈 Bolsa de Valores (Ações & BDR)")
+                if pos_acoes_bdr.empty:
+                    st.info("Nenhum ativo de Ações ou BDR em custódia.")
+                else:
+                    st.dataframe(pos_acoes_bdr, width="stretch")
 
             st.markdown("#### 🏦 Tesouro Direto")
             if pos_tesouro.empty:

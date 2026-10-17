@@ -1,6 +1,14 @@
 import plotly.express as px
 import plotly.graph_objects as go
+
 from .base import aplicar_layout_padrao
+from .defaults import (
+    COLOR_CUSTO,
+    COLOR_PATRIMONIO,
+    COLOR_PATRIMONIO_MARKER,
+    HEIGHT_LINE,
+    HEIGHT_LINE_COMPARATIVO,
+)
 
 
 def line_evolucao(evol):
@@ -15,7 +23,7 @@ def line_evolucao(evol):
     fig.update_traces(
         hovertemplate="<b>Data:</b> %{x|%d/%m/%Y}<br><b>Patrimônio:</b> R$ %{y:,.2f}<extra></extra>"
     )
-    return aplicar_layout_padrao(fig, altura=400, legenda_horizontal=False)
+    return aplicar_layout_padrao(fig, altura=HEIGHT_LINE, legenda_horizontal=False)
 
 
 def line_comparativo_patrimonio_e_aportes(curva_aportes, curva_patrimonio):
@@ -28,7 +36,7 @@ def line_comparativo_patrimonio_e_aportes(curva_aportes, curva_patrimonio):
                 y=curva_aportes["custo_acumulado"],
                 mode="lines",
                 name="Custo Acumulado (Aportes)",
-                line=dict(color="#64748b", width=2, dash="dash"),
+                line=dict(color=COLOR_CUSTO, width=2, dash="dash"),
                 hovertemplate="<b>Aportes Acumulados:</b> R$ %{y:,.2f}<extra></extra>",
             )
         )
@@ -40,8 +48,8 @@ def line_comparativo_patrimonio_e_aportes(curva_aportes, curva_patrimonio):
                 y=curva_patrimonio["patrimonio_liquido"],
                 mode="lines+markers",
                 name="Patrimônio Consolidado (Snapshots B3)",
-                line=dict(color="#2563eb", width=3),
-                marker=dict(size=8, color="#1d4ed8"),
+                line=dict(color=COLOR_PATRIMONIO, width=3),
+                marker=dict(size=8, color=COLOR_PATRIMONIO_MARKER),
                 hovertemplate="<b>Patrimônio Real:</b> R$ %{y:,.2f}<extra></extra>",
             )
         )
@@ -51,4 +59,4 @@ def line_comparativo_patrimonio_e_aportes(curva_aportes, curva_patrimonio):
         xaxis_title="Data de Referência",
         yaxis_title="Montante (R$)",
     )
-    return aplicar_layout_padrao(fig, altura=430, legenda_horizontal=True)
+    return aplicar_layout_padrao(fig, altura=HEIGHT_LINE_COMPARATIVO, legenda_horizontal=True)

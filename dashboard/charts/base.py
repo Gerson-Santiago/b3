@@ -2,6 +2,15 @@ from __future__ import annotations
 
 import plotly.graph_objects as go
 
+from .defaults import (
+    FONT_FAMILY,
+    FONT_SIZE_BASE,
+    FONT_SIZE_TITLE,
+    FONT_COLOR_TITLE,
+    MARGIN_DEFAULT,
+    HOVERLABEL,
+)
+
 
 def aplicar_layout_padrao(
     fig: go.Figure,
@@ -10,14 +19,20 @@ def aplicar_layout_padrao(
     legenda_horizontal: bool = True,
     margens: dict | None = None,
 ) -> go.Figure:
-    padrao_margens = margens or dict(l=30, r=30, t=50, b=40)
+    padrao_margens = margens or MARGIN_DEFAULT
 
     fig.update_layout(
         separators=",.",
         height=altura,
         margin=padrao_margens,
-        font=dict(family="Arial, sans-serif", size=12),
-        hoverlabel=dict(bgcolor="white", font_size=12),
+        font=dict(family=FONT_FAMILY, size=FONT_SIZE_BASE),
+        hoverlabel=HOVERLABEL,
+        title=dict(
+            font=dict(family=FONT_FAMILY, size=FONT_SIZE_TITLE, color=FONT_COLOR_TITLE),
+            x=0,
+            xanchor="left",
+            pad=dict(l=4),
+        ),
     )
 
     if legenda_horizontal:

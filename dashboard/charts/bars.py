@@ -1,5 +1,7 @@
 import plotly.express as px
+
 from .base import aplicar_layout_padrao
+from .defaults import COLOR_PROVENTOS, COLOR_DY, HEIGHT_BAR
 
 
 def bar_proventos(proventos):
@@ -9,12 +11,12 @@ def bar_proventos(proventos):
         y="valor_liquido",
         title="Histórico Mensal de Proventos Recebidos",
         labels={"mes": "Mês de Pagamento", "valor_liquido": "Proventos Líquidos (R$)"},
-        color_discrete_sequence=["#10b981"],
+        color_discrete_sequence=[COLOR_PROVENTOS],
     )
     fig.update_traces(
         hovertemplate="<b>Mês:</b> %{x}<br><b>Recebido:</b> R$ %{y:,.2f}<extra></extra>"
     )
-    return aplicar_layout_padrao(fig, altura=400, legenda_horizontal=False)
+    return aplicar_layout_padrao(fig, altura=HEIGHT_BAR, legenda_horizontal=False)
 
 
 def bar_dy(dy):
@@ -25,9 +27,9 @@ def bar_dy(dy):
         y=y_col,
         title="Dividend Yield LTM por Ativo (%)",
         labels={"produto": "Ativo", y_col: "Dividend Yield (%)"},
-        color_discrete_sequence=["#0284c7"],
+        color_discrete_sequence=[COLOR_DY],
     )
     fig.update_traces(
         hovertemplate="<b>Ativo:</b> %{x}<br><b>DY LTM:</b> %{y:.2f}%<extra></extra>"
     )
-    return aplicar_layout_padrao(fig, altura=400, legenda_horizontal=False)
+    return aplicar_layout_padrao(fig, altura=HEIGHT_BAR, legenda_horizontal=False)
