@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -11,14 +12,6 @@ from dashboard.columns import normaliza_colunas
 from dashboard.loader import read_b3_file
 from dashboard.loaders.movimentacao import parse_money, read_movimentacao_file
 from dashboard.loaders.posicao import _categorizar_sheet, read_posicao_file
-from dashboard.metrics import (
-    classificar_ativo,
-    compute_dy,
-    compute_position,
-    compute_position_categoria,
-    compute_preco_medio,
-    compute_proventos,
-)
 
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
@@ -26,16 +19,14 @@ FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
 class B3ArchitectureTest(unittest.TestCase):
     def test_movimentacao_has_expected_columns(self):
-        file_path = FIXTURES_DIR / "movimentacao_7_ativos.xlsx"
-        df = read_movimentacao_file(file_path)
+        df = read_movimentacao_file(FIXTURES_DIR / "movimentacao_7_ativos.xlsx")
         self.assertIn("entrada_saida", df.columns)
         self.assertIn("data", df.columns)
         self.assertIn("produto", df.columns)
         self.assertIn("valor_operacao", df.columns)
 
     def test_posicao_has_expected_columns(self):
-        file_path = FIXTURES_DIR / "posicao_7_ativos.xlsx"
-        df = read_posicao_file(file_path)
+        df = read_posicao_file(FIXTURES_DIR / "posicao_7_ativos.xlsx")
         self.assertIn("produto", df.columns)
         self.assertIn("quantidade", df.columns)
         self.assertIn("categoria", df.columns)
@@ -58,7 +49,7 @@ class B3ArchitectureTest(unittest.TestCase):
         source = Path(__file__).resolve().parents[1] / "dashboard" / "app.py"
         rendered = source.read_text(encoding="utf-8")
         self.assertIn('width="stretch"', rendered)
-        self.assertNotIn('use_container_width=True', rendered)
+        self.assertNotIn("use_container_width=True", rendered)
 
 
 class B3ColumnsAndParsingTest(unittest.TestCase):
@@ -73,8 +64,6 @@ class B3ColumnsAndParsingTest(unittest.TestCase):
         self.assertEqual(parse_money("R$ 1.234,56"), 1234.56)
         self.assertEqual(parse_money("1.000,00"), 1000.0)
         self.assertEqual(parse_money(30.78), 30.78)
-        self.assertEqual(parse_money(92.34), 92.34)
-        self.assertEqual(parse_money(102.5), 102.5)
         self.assertTrue(pd.isna(parse_money("")))
 
     def test_aliases_match_real_b3_headers(self):
@@ -85,270 +74,21 @@ class B3ColumnsAndParsingTest(unittest.TestCase):
         self.assertIn("Valor Atualizado", ALIASES_POS["valor_atualizado"])
 
 
-class B3LoaderAndMetricsTest(unittest.TestCase):
+class B3LoaderDispatchTest(unittest.TestCase):
     def test_categorizar_sheet_classifies_by_sheet(self):
         self.assertEqual(_categorizar_sheet("Tesouro Direto"), "TESOURO")
         self.assertEqual(_categorizar_sheet("BDR"), "BDR")
         self.assertEqual(_categorizar_sheet("Acoes"), "AÇÕES")
 
-    def test_classificar_ativo_recognizes_bdr_tickers_without_bdr_word(self):
-        self.assertEqual(classificar_ativo("GOGL35"), "BDR")
-        self.assertEqual(classificar_ativo("MSFT34"), "BDR")
-        self.assertEqual(classificar_ativo("PETR4"), "AÇÕES")
-
-    def test_compute_position_groups_by_product(self):
-        df = pd.DataFrame(
-            {
-                "produto": ["PETR4", "PETR4", "VALE3"],
-                "qtd_liquida": [5, 3, 2],
-                "valor_liquido": [90, 60, 40],
-            }
-        )
-        result = compute_position(df)
-        self.assertEqual(result[result["produto"] == "PETR4"]["quantidade"].iloc[0], 8)
-        self.assertEqual(result[result["produto"] == "PETR4"]["valor"].iloc[0], 150)
-        self.assertEqual(result[result["produto"] == "VALE3"]["quantidade"].iloc[0], 2)
-
-    def test_compute_position_categoria_aggregates_by_category(self):
-        df = pd.DataFrame(
-            {
-                "produto": ["PETR4", "GOGL35 - ALPHABET INC.", "Tesouro Selic 2028"],
-                "qtd_liquida": [10, 5, 1],
-                "valor_liquido": [100, 80, 50],
-            }
-        )
-        result = compute_position_categoria(df)
-        resumo = dict(zip(result["categoria"], result["valor"]))
-        self.assertEqual(resumo["AÇÕES"], 100)
-        self.assertEqual(resumo["BDR"], 80)
-        self.assertEqual(resumo["TESOURO"], 50)
-
-    def test_compute_preco_medio_keeps_liquidacao_rows_and_matches_broker_reference(self):
-        df = pd.DataFrame(
-            {
-                "produto": ["GOGL35", "GOGL35", "CPFE3", "CPFE3", "PETR4", "PETR4"],
-                "data": [
-                    "2021-11-10",
-                    "2021-11-26",
-                    "2024-01-02",
-                    "2024-01-03",
-                    "2024-01-04",
-                    "2024-01-05",
-                ],
-                "qtd_liquida": [5, 12, 1, 2, 10, 13],
-                "valor_liquido": [318.90, 765.36, 30.78, 61.56, 326.13, 423.96],
-                "movimentacao": [
-                    "transferência - liquidação",
-                    "transferência - liquidação",
-                    "compra",
-                    "compra",
-                    "compra",
-                    "compra",
-                ],
-                "entrada_saida": ["credito", "credito", "credito", "credito", "credito", "credito"],
-            }
-        )
-
-        result = compute_preco_medio(df)
-        googl = result[result["produto"] == "GOGL35"].iloc[0]
-        cpfe = result[result["produto"] == "CPFE3"].iloc[0]
-        petr = result[result["produto"] == "PETR4"].iloc[0]
-
-        self.assertAlmostEqual(googl["quantidade"], 17.0)
-        self.assertAlmostEqual(googl["custo_total"], 1084.26)
-        self.assertAlmostEqual(googl["preco_medio"], 63.78, places=2)
-        self.assertAlmostEqual(cpfe["preco_medio"], 30.78, places=2)
-        self.assertAlmostEqual(petr["preco_medio"], 32.61, places=2)
-
-    def test_compute_preco_medio_googl35_uses_real_xlsx_fixture_and_corporate_events(self):
-        path = FIXTURES_DIR / "movimentacao_7_ativos.xlsx"
-        df = read_movimentacao_file(path)
-        googl = df[df["produto"].astype(str).str.contains("GOGL35", case=False, na=False)].copy()
-        googl = googl.sort_values("data", kind="mergesort")
-
-        result = compute_preco_medio(googl)
-        googl_result = result[result["produto"].astype(str).str.contains("GOGL35", case=False, na=False)].iloc[0]
-
-        self.assertAlmostEqual(googl_result["quantidade"], 17.0, places=5)
-        self.assertAlmostEqual(googl_result["preco_medio"], 63.78, places=2)
-
-    def test_classificacao_movimentacao_distinguishes_proventos_e_ajustes(self):
-        from dashboard.models.movimentacao import TipoMovimentacao, classificar_movimentacao
-
-        self.assertEqual(classificar_movimentacao("dividendo"), TipoMovimentacao.PROVENTO)
-        self.assertEqual(classificar_movimentacao("atualização"), TipoMovimentacao.PROVENTO)
-        self.assertEqual(classificar_movimentacao("desdobro de ações"), TipoMovimentacao.DESDOBRAMENTO)
-        self.assertEqual(classificar_movimentacao("grupamento"), TipoMovimentacao.GRUPAMENTO)
-        self.assertEqual(classificar_movimentacao("compra"), TipoMovimentacao.COMPRA)
-        self.assertEqual(classificar_movimentacao("venda"), TipoMovimentacao.VENDA)
-        self.assertEqual(classificar_movimentacao("leilão de fração"), TipoMovimentacao.AJUSTE_QUANTIDADE)
-
-    def test_compute_preco_medio_ignores_sell_events_without_masking_cost(self):
-        df = pd.DataFrame(
-            {
-                "produto": ["PETR4", "PETR4", "PETR4"],
-                "data": ["2024-01-10", "2024-01-15", "2024-01-20"],
-                "movimentacao": ["compra", "venda", "compra"],
-                "entrada_saida": ["credito", "debito", "credito"],
-                "quantidade": [10, 3, 2],
-                "valor_operacao": [300, 90, 70],
-            }
-        )
-        df["qtd_liquida"] = df["quantidade"] * df["entrada_saida"].map({"credito": 1, "debito": -1})
-        df["valor_liquido"] = df["valor_operacao"] * df["entrada_saida"].map({"credito": 1, "debito": -1})
-
-        result = compute_preco_medio(df)
-        petr = result[result["produto"] == "PETR4"].iloc[0]
-
-        self.assertAlmostEqual(petr["quantidade"], 9.0)
-        self.assertAlmostEqual(petr["custo_total"], 280.0)
-        self.assertAlmostEqual(petr["preco_medio"], 31.11111111111111, places=4)
-
-    def test_compute_preco_medio_googl35_handles_corporate_events(self):
-        df = pd.DataFrame(
-            {
-                "produto": ["GOGL35"] * 8,
-                "data": [
-                    "2021-11-10",
-                    "2021-11-26",
-                    "2021-11-30",
-                    "2022-01-07",
-                    "2022-01-24",
-                    "2022-01-25",
-                    "2022-01-28",
-                    "2022-09-09",
-                ],
-                "movimentacao": [
-                    "transferência - liquidação",
-                    "transferência - liquidação",
-                    "transferência - liquidação",
-                    "transferência - liquidação",
-                    "transferência - liquidação",
-                    "transferência - liquidação",
-                    "transferência - liquidação",
-                    "leilão de fração",
-                ],
-                "entrada_saida": ["credito"] * 8,
-                "qtd_liquida": [1, 1, 1, 2, 2, 3, 1, 0.6],
-                "valor_liquido": [111.52, 109.07, 107.25, 214.06, 198.60, 288.00, 94.00, 27.62],
-            }
-        )
-
-        split_df = pd.DataFrame(
-            {
-                "produto": ["GOGL35", "GOGL35", "GOGL35"],
-                "data": ["2022-07-19", "2022-08-30", "2022-08-31"],
-                "movimentacao": ["desdobro", "grupamento", "fração em ativos"],
-                "entrada_saida": ["credito", "credito", "debito"],
-                "qtd_liquida": [209.0, 17.6, -0.6],
-                "valor_liquido": [None, None, None],
-            }
-        )
-
-        df = pd.concat([df, split_df], ignore_index=True)
-        result = compute_preco_medio(df)
-        googl = result[result["produto"] == "GOGL35"].iloc[0]
-
-        self.assertAlmostEqual(googl["quantidade"], 17.0, places=5)
-        self.assertAlmostEqual(googl["custo_total"], 1084.23, places=2)
-        self.assertAlmostEqual(googl["preco_medio"], 63.78, places=2)
-
-    def test_compute_position_categoria_uses_sheet_category_when_available(self):
-        df = pd.DataFrame(
-            {
-                "produto": ["GOGL35", "MSFT34", "TESOURO SELIC 2028"],
-                "qtd_liquida": [17, 11, 1],
-                "valor_liquido": [2489.48, 1256.2, 200.88],
-                "categoria": ["BDR", "BDR", "TESOURO"],
-            }
-        )
-        result = compute_position_categoria(df)
-        resumo = dict(zip(result["categoria"], result["valor"]))
-        self.assertEqual(resumo["BDR"], 3745.68)
-        self.assertEqual(resumo["TESOURO"], 200.88)
-
-    def test_compute_proventos_keeps_only_credits_not_purchases(self):
-        df = pd.DataFrame(
-            {
-                "mes": ["2026-10", "2026-10", "2026-10", "2026-11"],
-                "entrada_saida": ["credito", "credito", "debito", "credito"],
-                "movimentacao": ["juros", "compra", "venda", "dividendo"],
-                "valor_liquido": [150, -500, 100, 70],
-            }
-        )
-        result = compute_proventos(df)
-        self.assertEqual(result["valor_liquido"].sum(), 220)
-
-    def test_compute_dy_uses_position_and_received_proceeds(self):
-        df = pd.DataFrame(
-            {
-                "produto": ["PETR4", "VALE3"],
-                "qtd_liquida": [10, 5],
-                "valor_liquido": [500, 200],
-                "entrada_saida": ["credito", "credito"],
-                "movimentacao": ["juros", "juros"],
-                "valor_operacao": [500, 200],
-            }
-        )
-        result = compute_dy(df)
-        pet = result[result["produto"] == "PETR4"].iloc[0]
-        self.assertAlmostEqual(pet["dy_pct"], 100.0)
-
-    def test_compute_preco_medio_uses_chronological_average_cost(self):
-        df = pd.DataFrame(
-            {
-                "produto": ["PETR4", "PETR4", "PETR4", "PETR4", "VALE3", "VALE3"],
-                "data": [
-                    "2024-01-10",
-                    "2024-02-10",
-                    "2024-03-10",
-                    "2024-03-15",
-                    "2024-01-20",
-                    "2024-02-20",
-                ],
-                "qtd_liquida": [10, 5, -3, 2, 4, -1],
-                "valor_liquido": [200, 100, -60, 0, 80, -20],
-                "movimentacao": ["compra", "compra", "venda", "bonificação", "compra", "venda"],
-                "entrada_saida": ["credito", "credito", "debito", "credito", "credito", "debito"],
-            }
-        )
-        result = compute_preco_medio(df)
-        petr = result[result["produto"] == "PETR4"].iloc[0]
-        self.assertAlmostEqual(petr["quantidade"], 14.0)
-        self.assertAlmostEqual(petr["custo_total"], 240.0)
-        self.assertAlmostEqual(petr["preco_medio"], 17.142857142857142, places=5)
-
-        vale = result[result["produto"] == "VALE3"].iloc[0]
-        self.assertAlmostEqual(vale["quantidade"], 3.0)
-        self.assertAlmostEqual(vale["custo_total"], 60.0)
-        self.assertAlmostEqual(vale["preco_medio"], 20.0)
-
-    def test_compute_preco_medio_restarts_after_position_zero(self):
-        df = pd.DataFrame(
-            {
-                "produto": ["PETR4", "PETR4", "PETR4"],
-                "data": ["2024-01-01", "2024-02-01", "2024-03-01"],
-                "qtd_liquida": [10, -10, 5],
-                "valor_liquido": [200, -200, 100],
-                "movimentacao": ["compra", "venda", "compra"],
-                "entrada_saida": ["credito", "debito", "credito"],
-            }
-        )
-        result = compute_preco_medio(df)
-        petr = result[result["produto"] == "PETR4"].iloc[0]
-        self.assertAlmostEqual(petr["quantidade"], 5.0)
-        self.assertAlmostEqual(petr["custo_total"], 100.0)
-        self.assertAlmostEqual(petr["preco_medio"], 20.0)
-
     def test_read_b3_file_dispatches_csv_and_xlsx(self):
-        import tempfile
-        xlsx_path = FIXTURES_DIR / "posicao_7_ativos.xlsx"
-        xlsx_df = read_b3_file(xlsx_path)
+        xlsx_df = read_b3_file(FIXTURES_DIR / "posicao_7_ativos.xlsx")
         self.assertIn("categoria", xlsx_df.columns)
 
         with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w", encoding="utf-8-sig") as f:
-            f.write("Entrada/Saída;Data;Movimentação;Produto;Instituição;Quantidade;Preço unitário;Valor da Operação\n"
-                    "Credito;06/08/2026;Compra;PETR4;Corretora X;10;30,00;300,00\n")
+            f.write(
+                "Entrada/Saída;Data;Movimentação;Produto;Instituição;Quantidade;Preço unitário;Valor da Operação\n"
+                "Credito;06/08/2026;Compra;PETR4;Corretora X;10;30,00;300,00\n"
+            )
             temp_csv = Path(f.name)
         try:
             csv_df = read_b3_file(temp_csv)

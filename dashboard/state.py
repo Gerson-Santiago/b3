@@ -10,88 +10,14 @@ from dataclasses import dataclass, field
 from datetime import date
 
 import pandas as pd
-try:
-    from dashboard.filters import filtrar_dataframe
-    from dashboard.metrics.dy import compute_dy_metrics
-    from dashboard.metrics.evolucao import compute_evolucao_separada
-    from dashboard.metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
-    from dashboard.metrics.preco_medio import compute_preco_medio
-    from dashboard.metrics.proventos import compute_proventos
-    from dashboard.models.ativos import resolver_ativo_seguro
-    from dashboard.models.eventos import aplicar_eventos_ordenados
-    from dashboard.models.qualidade import RelatorioQualidade
-except ImportError:  # pragma: no cover
-    from filters import filtrar_dataframe
-    from metrics.dy import compute_dy_metrics
-    from metrics.evolucao import compute_evolucao_separada
-    from metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
-    from metrics.preco_medio import compute_preco_medio
-    from metrics.proventos import compute_proventos
-    from models.ativos import resolver_ativo_seguro
-    from models.eventos import aplicar_eventos_ordenados
-    from models.qualidade import RelatorioQualidade
 
-# Categorias que compõem "Bolsa de Valores" no gráfico agrupado
-_CATEGORIAS_BOLSA = {"AÇÕES", "BDR"}
-_LABEL_BOLSA = "Bolsa de Valores"
+from dashboard.metrics.dy import compute_dy_metrics
+from dashboard.metrics.proventos import compute_proventos
+from dashboard.models.qualidade import RelatorioQualidade
+from dashboard.state_pipeline import enriquecer_pos_cards, montar_derivados
 
-
-def _agrupar_bolsa(pos_categoria: pd.DataFrame) -> pd.DataFrame:
-    """Agrupa AÇÕES e BDR em 'Bolsa de Valores' — SSOT do agrupamento."""
-    if pos_categoria.empty:
-        return pos_categoria.copy()
-
-    agrupada = pos_categoria.copy()
-    agrupada["categoria"] = agrupada["categoria"].replace(
-        {cat: _LABEL_BOLSA for cat in _CATEGORIAS_BOLSA}
-    )
-    return (
-        agrupada.groupby("categoria", as_index=False)
-        .agg(valor=("valor", "sum"), quantidade=("quantidade", "sum"))
-        .sort_values("valor", ascending=False)
-    )
-
-
-def _enriquecer_pos_cards(pos: pd.DataFrame, pm_df: pd.DataFrame) -> pd.DataFrame:
-    """Junta pos (valor atual do snapshot) com preco_medio/custo_total e deriva pl/variacao_pct.
-
-    O join é feito via ativo_id entre pos e pm_df.
-    """
-    if pos.empty:
-        return pd.DataFrame(columns=["produto", "categoria", "quantidade", "valor_abs",
-                                     "preco_medio", "custo_total", "pl", "variacao_pct"])
-
-    cards = pos.copy()
-    colunas_base = [c for c in ["produto", "categoria", "quantidade", "valor_abs"] if c in cards.columns]
-    cards = cards[colunas_base].copy()
-
-    if not pm_df.empty:
-        if "ativo_id" in pos.columns:
-            cards["_join_key"] = pos["ativo_id"]
-        else:
-            cards["_join_key"] = cards["produto"].map(resolver_ativo_seguro)
-
-        if "ativo_id" in pm_df.columns:
-            pm = pm_df[["ativo_id", "preco_medio", "custo_total"]].copy()
-            pm = pm.rename(columns={"ativo_id": "_join_key"})
-        else:
-            pm = pm_df[["produto", "preco_medio", "custo_total"]].copy()
-            pm["_join_key"] = pm["produto"].map(resolver_ativo_seguro)
-            pm = pm.drop(columns=["produto"])
-
-        cards = cards.merge(pm, on="_join_key", how="left").drop(columns=["_join_key"])
-    else:
-        cards["preco_medio"] = float("nan")
-        cards["custo_total"] = float("nan")
-
-    cards["preco_medio"] = pd.to_numeric(cards["preco_medio"], errors="coerce").fillna(0.0)
-    cards["custo_total"] = pd.to_numeric(cards["custo_total"], errors="coerce").fillna(0.0)
-    cards["pl"] = (cards["valor_abs"] - cards["custo_total"]).round(2)
-    cards["variacao_pct"] = cards.apply(
-        lambda r: round((r["pl"] / r["custo_total"]) * 100, 2) if r["custo_total"] else 0.0,
-        axis=1,
-    )
-    return cards.sort_values("valor_abs", ascending=False).reset_index(drop=True)
+# Reexportado para testes que importam o helper puro.
+_enriquecer_pos_cards = enriquecer_pos_cards
 
 
 @dataclass
@@ -101,30 +27,18 @@ class DashboardState:
     Instancie sempre via :meth:`build` — nunca diretamente.
     """
 
-    # Posição consolidada com coluna ``categoria``
     pos: pd.DataFrame
-    # Alocação por categoria granular (AÇÕES e BDR separados)
     pos_categoria: pd.DataFrame
-    # Alocação agrupada (BDR + AÇÕES → "Bolsa de Valores") — SSOT
     pos_categoria_agrupada: pd.DataFrame
-    # pos enriquecida com preco_medio, custo_total, pl e variacao_pct
     pos_cards: pd.DataFrame
-    # DataFrames filtrados preservados para as views
     mov_filtered: pd.DataFrame
     pos_filtered: pd.DataFrame
-    # Métricas calculadas
     proventos: pd.DataFrame
-    # Curva consolidada (Bolsa + Tesouro)
     evol_dict: dict
-    # Curvas segmentadas por produto — mesma estrutura de evol_dict
     evol_bolsa: dict
     evol_tesouro: dict
     dy_metrics: pd.DataFrame
     qualidade: RelatorioQualidade = field(default_factory=RelatorioQualidade)
-
-    # ------------------------------------------------------------------
-    # Factory method
-    # ------------------------------------------------------------------
 
     @classmethod
     def build(
@@ -139,123 +53,21 @@ class DashboardState:
         instituicoes_selecionadas: list[str] | None = None,
         qualidade: RelatorioQualidade | None = None,
     ) -> "DashboardState":
-        """Calcula todos os dados derivados e retorna um ``DashboardState``.
-
-        Parameters
-        ----------
-        pos_df:
-            Snapshot de posição completo (sem filtros de sidebar), usado
-            como SSOT do mapa de categorias e para cálculo de DY.
-        mov_filtered:
-            Movimentações já filtradas pelos filtros de sidebar (usado para proventos
-            e exibições no período selecionado).
-        pos_filtered:
-            Posição já filtrada pelos filtros de sidebar.
-        end_date:
-            Data de corte para cálculo de métricas de DY, preço médio e posição.
-        mov_df:
-            Movimentação completa (opcional). Se fornecido, o preço médio e a posição
-            de fallback usam o histórico inteiro até ``end_date`` (sem corte de ``start_date``).
-        produtos_selecionados:
-            Lista de produtos filtrados na sidebar (se vazia ou None, sem filtro).
-        instituicoes_selecionadas:
-            Lista de instituições filtradas na sidebar (se vazia ou None, sem filtro).
-        """
-        # SSOT do mapa de categorias — sempre vem do pos_df sem filtro
-        mapa_cat = obter_mapa_categorias(pos_df) if not pos_df.empty else {}
-
-        # Determina o histórico de movimentações até end_date (sem corte de start_date)
-        if mov_df is not None and not mov_df.empty:
-            mov_ate_end_date = filtrar_dataframe(
-                mov_df,
-                instituicoes=instituicoes_selecionadas or [],
-                produtos=produtos_selecionados or [],
-                start_date=None,
-                end_date=end_date,
-            )
-        else:
-            mov_ate_end_date = mov_filtered
-
-        # Posição consolidada
-        if not pos_filtered.empty:
-            pos = compute_position(pos_filtered)
-        else:
-            # Fallback para movimentações usando a SSOT de eventos (aplicar_eventos_ordenados)
-            resumo_mov = aplicar_eventos_ordenados(mov_ate_end_date)
-            if not resumo_mov.empty:
-                pos = resumo_mov[resumo_mov["quantidade"].abs() > 0].copy()
-                pos["valor"] = pos["custo_total"].round(2)
-                pos["valor_abs"] = pos["valor"].abs().round(2)
-            else:
-                pos = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs"])
-
-        if not pos.empty:
-            pos = pos.copy()
-            pos["categoria"] = pos["produto"].apply(
-                lambda p: classificar_ativo_por_mapa(p, mapa_cat)
-            )
-            pos_categoria = (
-                pos.groupby("categoria", as_index=False)
-                .agg(valor=("valor_abs", "sum"), quantidade=("quantidade", "sum"))
-                .sort_values("valor", ascending=False)
-            )
-        else:
-            pos = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs", "categoria"])
-            pos_categoria = pd.DataFrame(columns=["categoria", "valor", "quantidade"])
-
-        pos_categoria_agrupada = _agrupar_bolsa(pos_categoria)
-
-        # pos_cards: enriquece pos com preco_medio/custo_total usando histórico até end_date
-        pm_df = compute_preco_medio(mov_ate_end_date)
-        pos_cards = _enriquecer_pos_cards(pos, pm_df)
-
-        proventos = compute_proventos(mov_filtered)
-
-        pos_frames = [pos_df] if not pos_df.empty else []
-
-        # Consolidado — mesmo padrão já existente
-        evol_dict = compute_evolucao_separada(mov_filtered, pos_frames)
-
-        # Segmentado por produto: filtra mov_filtered pela categoria via mapa_cat
-        def _filtrar_mov(categorias: set[str]) -> pd.DataFrame:
-            if mov_filtered.empty or not mapa_cat or "produto" not in mov_filtered.columns:
-                return mov_filtered.iloc[0:0]  # DataFrame vazio com mesmas colunas
-            mask = mov_filtered["produto"].apply(
-                lambda p: str(mapa_cat.get(str(p or "").strip(), "")).upper()
-                in {c.upper() for c in categorias}
-            )
-            return mov_filtered[mask]
-
-        def _filtrar_pos(categorias: set[str]) -> list[pd.DataFrame]:
-            resultado = []
-            for frame in pos_frames:
-                if frame is None or frame.empty or "categoria" not in frame.columns:
-                    continue
-                filtrado = frame[frame["categoria"].str.upper().isin({c.upper() for c in categorias})]
-                if not filtrado.empty:
-                    resultado.append(filtrado)
-            return resultado
-
-        evol_bolsa = compute_evolucao_separada(
-            _filtrar_mov(_CATEGORIAS_BOLSA), _filtrar_pos(_CATEGORIAS_BOLSA)
-        )
-        evol_tesouro = compute_evolucao_separada(
-            _filtrar_mov({"TESOURO"}), _filtrar_pos({"TESOURO"})
-        )
-
-        dy_metrics = compute_dy_metrics(mov_filtered, pos_df, data_referencia=end_date)
-
-        return cls(
-            pos=pos,
-            pos_categoria=pos_categoria,
-            pos_categoria_agrupada=pos_categoria_agrupada,
-            pos_cards=pos_cards,
+        """Calcula todos os dados derivados e retorna um ``DashboardState``."""
+        derivados = montar_derivados(
+            pos_df=pos_df,
             mov_filtered=mov_filtered,
             pos_filtered=pos_filtered,
-            proventos=proventos,
-            evol_dict=evol_dict,
-            evol_bolsa=evol_bolsa,
-            evol_tesouro=evol_tesouro,
-            dy_metrics=dy_metrics,
+            end_date=end_date,
+            mov_df=mov_df,
+            produtos_selecionados=produtos_selecionados,
+            instituicoes_selecionadas=instituicoes_selecionadas,
+        )
+        return cls(
+            **derivados,
+            mov_filtered=mov_filtered,
+            pos_filtered=pos_filtered,
+            proventos=compute_proventos(mov_filtered),
+            dy_metrics=compute_dy_metrics(mov_filtered, pos_df, data_referencia=end_date),
             qualidade=qualidade if qualidade is not None else RelatorioQualidade(),
         )

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from dashboard.models.ativos import AtivoDesconhecido, AtivoId, Classe
+from dashboard.models.identidade import AtivoDesconhecido, AtivoId, Classe
 from dashboard.models.texto import normalizar_nome
 
 

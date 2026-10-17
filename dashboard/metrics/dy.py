@@ -4,6 +4,7 @@ import pandas as pd
 from dashboard.metrics.preco_medio import compute_preco_medio
 from dashboard.models.ativos import resolver_ativo_seguro
 from dashboard.models.eventos import efeito_movimentacao
+from dashboard.models.movimentacao import is_credito
 from .position import compute_position
 
 
@@ -41,7 +42,7 @@ def compute_dy_metrics(mov_df: pd.DataFrame, pos_df: pd.DataFrame | None = None,
     proventos = df_12m.loc[
         df_12m.apply(
             lambda row: bool(efeito_movimentacao(row.get("movimentacao"), row.get("entrada_saida")).provento)
-            and str(row.get("entrada_saida") or "").strip().lower() in {"credito", "crédito"},
+            and is_credito(row.get("entrada_saida")),
             axis=1,
         )
     ].copy()

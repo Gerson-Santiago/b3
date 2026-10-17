@@ -8,16 +8,26 @@ from .ativos import (
     resolver_ativo,
     resolver_ativo_seguro,
 )
-from .eventos import (
-    EfeitoMovimentacao,
+from .catalogo import CATALOGO_ATIVOS
+from .efeitos import (
     EVENTOS,
-    aplicar_eventos_ordenados,
+    EfeitoMovimentacao,
     efeito_movimentacao,
     listar_movimentacoes_pendentes,
     normalizar_chave_evento,
     tem_efeito_pendente,
 )
-from .movimentacao import Movimentacao, TipoMovimentacao, classificar_movimentacao, is_ajuste_quantidade, is_provento
+from .eventos import aplicar_eventos_ordenados
+from .movimentacao import (
+    Movimentacao,
+    SINAL_ENTRADA_SAIDA,
+    TipoMovimentacao,
+    calcular_sinal,
+    classificar_movimentacao,
+    is_ajuste_quantidade,
+    is_credito,
+    is_provento,
+)
 from .qualidade import Aviso, RelatorioQualidade, mensagens
 
 __all__ = [
@@ -29,11 +39,15 @@ __all__ = [
     "resolver_ativo",
     "resolver_ativo_seguro",
     "anotar_ativos",
+    "CATALOGO_ATIVOS",
     "Aviso",
     "RelatorioQualidade",
     "mensagens",
     "Movimentacao",
     "TipoMovimentacao",
+    "SINAL_ENTRADA_SAIDA",
+    "calcular_sinal",
+    "is_credito",
     "classificar_movimentacao",
     "is_provento",
     "is_ajuste_quantidade",

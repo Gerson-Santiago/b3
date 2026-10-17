@@ -28,7 +28,8 @@ def test_efeito_dividendo_e_provento_e_ignorado_na_quantidade():
 
 
 def test_efeito_desconhecido_fica_pendente():
-    efeito = efeito_movimentacao("evento inventado xyz", "credito")
+    with pytest.warns(RuntimeWarning):
+        efeito = efeito_movimentacao("evento inventado xyz", "credito")
     assert efeito.status == "pendente"
     assert efeito.quantidade == "pendente"
 
@@ -64,7 +65,9 @@ def test_listar_pendentes_e_flag():
             "entrada_saida": ["credito", "credito"],
         }
     )
-    pendentes = listar_movimentacoes_pendentes(df)
+    with pytest.warns(RuntimeWarning):
+        pendentes = listar_movimentacoes_pendentes(df)
     assert pendentes == ["evento novo|credito"]
-    assert tem_efeito_pendente(df) is True
+    with pytest.warns(RuntimeWarning):
+        assert tem_efeito_pendente(df) is True
     assert tem_efeito_pendente(pd.DataFrame()) is False

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import re
-import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
+
+from dashboard.models.texto import normalizar_texto
 
 
 class TipoMovimentacao(str, Enum):
@@ -19,16 +19,8 @@ class TipoMovimentacao(str, Enum):
     DESCONHECIDA = "desconhecida"
 
 
-def _normalizar_texto(texto: object) -> str:
-    text = unicodedata.normalize("NFKD", str(texto or ""))
-    text = text.encode("ascii", "ignore").decode("ascii")
-    text = text.lower()
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
-
-
 def classificar_movimentacao(texto: object) -> TipoMovimentacao:
-    valor = _normalizar_texto(texto)
+    valor = normalizar_texto(texto)
     if not valor:
         return TipoMovimentacao.DESCONHECIDA
 
@@ -73,6 +65,28 @@ def is_ajuste_quantidade(movimentacao: object) -> bool:
     }
 
 
+SINAL_ENTRADA_SAIDA: dict[str, int] = {
+    "credito": 1,
+    "crédito": 1,
+    "debito": -1,
+    "débito": -1,
+}
+
+
+def calcular_sinal(entrada_saida: object) -> int:
+    """Retorna 1 para crédito, -1 para débito e 0 para desconhecido/vazio."""
+    val = normalizar_texto(entrada_saida)
+    if val in ("credito", "credito"):
+        return 1
+    if val in ("debito", "debito"):
+        return -1
+    return 0
+
+
+def is_credito(entrada_saida: object) -> bool:
+    return calcular_sinal(entrada_saida) == 1
+
+
 @dataclass
 class Movimentacao:
     data: date
@@ -86,7 +100,7 @@ class Movimentacao:
 
     @property
     def sinal(self) -> int:
-        return 1 if str(self.entrada_saida).strip().lower() in {"credito", "crédito"} else -1
+        return calcular_sinal(self.entrada_saida) or -1
 
     @property
     def tipo(self) -> TipoMovimentacao:

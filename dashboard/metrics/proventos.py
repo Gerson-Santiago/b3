@@ -1,6 +1,7 @@
 import pandas as pd
 
 from dashboard.models.eventos import efeito_movimentacao
+from dashboard.models.movimentacao import is_credito
 
 
 def compute_proventos(df):
@@ -10,7 +11,7 @@ def compute_proventos(df):
     proventos = df.loc[
         df.apply(
             lambda row: bool(efeito_movimentacao(row.get("movimentacao"), row.get("entrada_saida")).provento)
-            and str(row.get("entrada_saida") or "").strip().lower() in {"credito", "crédito"},
+            and is_credito(row.get("entrada_saida")),
             axis=1,
         )
     ].copy()

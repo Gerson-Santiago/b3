@@ -6,6 +6,7 @@ from typing import Union
 
 import pandas as pd
 
+from dashboard.models.movimentacao import SINAL_ENTRADA_SAIDA
 from dashboard.utils import parse_money
 
 try:
@@ -70,8 +71,7 @@ def _normalize_movimentacao_df(df):
     df["produto"] = df["produto"].fillna("Sem nome").astype(str).str.strip()
     df["instituicao"] = df["instituicao"].fillna("Sem instituição").astype(str).str.strip()
 
-    sinal = {"credito": 1, "crédito": 1, "debito": -1, "débito": -1}
-    df["sinal"] = df["entrada_saida"].map(sinal).fillna(0)
+    df["sinal"] = df["entrada_saida"].map(SINAL_ENTRADA_SAIDA).fillna(0)
     df["qtd_liquida"] = df["quantidade"] * df["sinal"]
     df["valor_liquido"] = df["valor_operacao"] * df["sinal"]
     df["mes"] = df["data"].dt.to_period("M").astype(str)
