@@ -144,4 +144,13 @@ def test_zero_ocorrencias_de_in_texto_ou_in_valor_em_models():
     assert not ocorrencias, f"Encontradas ocorrências proibidas em models:\n" + "\n".join(ocorrencias)
 
 
+def test_pipeline_eventos_modulo_coesao():
+    from dashboard.models.pipeline_eventos import _preparar_movimentacoes, aplicar_eventos_ordenados
+    assert _preparar_movimentacoes(None) is None
+    vazio = aplicar_eventos_ordenados(pd.DataFrame())
+    assert list(vazio.columns) == ["produto", "quantidade", "custo_total", "preco_medio"]
+    assert vazio.empty
+
+
+
 

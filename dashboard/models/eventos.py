@@ -10,7 +10,7 @@ from dashboard.models.efeitos import (
     normalizar_chave_evento,
     tem_efeito_pendente,
 )
-from dashboard.models.motor_posicao import aplicar_eventos_ordenados
+from dashboard.models.pipeline_eventos import aplicar_eventos_ordenados
 
 __all__ = [
     "SemanticaQuantidade",
