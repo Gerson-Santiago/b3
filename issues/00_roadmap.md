@@ -13,7 +13,7 @@
 | Fase | Módulo | Descrição | Status |
 | :--- | :--- | :--- | :---: |
 | **Fase 1** | `models/` | Core: Motor de Cálculo e Eventos (1.1–1.4) | ✅ Concluído |
-| **Fase 2** | `tests/` | Proteção: Cobertura Unitária da Camada de Gráficos | ⏳ Backlog |
+| **Fase 2** | `tests/` | Proteção: Cobertura Unitária da Camada de Gráficos | ✅ Concluído |
 | **Fase 3** | `charts/` | SSoT & DRY: Consolidação da Camada de Visualização | ⏳ Backlog |
 | **Fase 4** | `charts/` + `views/` | Novos Gráficos: P&L e Rentabilidade Comparativa | ⏳ Backlog |
 | **Fase 5** | `metrics/` + `views/` | Calendário de Proventos e Fluxo de Caixa | ⏳ Backlog |
@@ -33,17 +33,17 @@
 
 ---
 
-## Fase 2 — Proteção: Cobertura Unitária da Camada de Gráficos ⏳
+## Fase 2 — Proteção: Cobertura Unitária da Camada de Gráficos ✅
 
 > **Princípio:** Antes de refatorar ou adicionar qualquer gráfico, fixar o comportamento atual com testes.
 > **Referência:** `tests/test_treemap.py` é o modelo de qualidade a seguir.
 
 | # | Arquivo de Issue | Descrição | Status |
 | :--- | :--- | :--- | :---: |
-| 2.1 | [issue_021_testes_bar.md](./issue_021_testes_bar.md) | Testes unitários para `charts/bars.py` | ⏳ Backlog |
-| 2.2 | [issue_022_testes_lines.md](./issue_022_testes_lines.md) | Testes unitários para `charts/lines.py` | ⏳ Backlog |
-| 2.3 | [issue_023_testes_pie.md](./issue_023_testes_pie.md) | Testes unitários para `charts/pie.py` | ⏳ Backlog |
-| 2.4 | [issue_024_testes_base.md](./issue_024_testes_base.md) | Testes unitários para `charts/base.py` | ⏳ Backlog |
+| 2.1 | [issue_021_testes_bar.md](./issue_021_testes_bar.md) | Testes unitários para `charts/bars.py` | ✅ Concluído |
+| 2.2 | [issue_022_testes_lines.md](./issue_022_testes_lines.md) | Testes unitários para `charts/lines.py` | ✅ Concluído |
+| 2.3 | [issue_023_testes_pie.md](./issue_023_testes_pie.md) | Testes unitários para `charts/pie.py` | ✅ Concluído |
+| 2.4 | [issue_024_testes_base.md](./issue_024_testes_base.md) | Testes unitários para `charts/base.py` | ✅ Concluído |
 
 ---
 
@@ -53,8 +53,8 @@
 
 | # | Arquivo de Issue | Descrição | Status |
 | :--- | :--- | :--- | :---: |
-| 3.1 | [issue_031_dry_pie.md](./issue_031_dry_pie.md) | Extrair `_criar_donut()` para eliminar triplicação em `pie.py` | ⏳ Backlog |
-| 3.2 | [issue_032_ssot_hierarquia.md](./issue_032_ssot_hierarquia.md) | Mover regras de remapeamento de categoria de `treemap.py` para `models/categorias.py` | ⏳ Backlog |
+| 3.1 | [issue_031_dry_pie.md](./issue_031_dry_pie.md) | Extrair `_criar_donut()` para eliminar triplicação em `pie.py` | ✅ Concluído |
+| 3.2 | [issue_032_ssot_hierarquia.md](./issue_032_ssot_hierarquia.md) | Mover regras de remapeamento de categoria de `treemap.py` para `models/categorias.py` | ✅ Concluído |
 | 3.3 | [issue_033_dry_treemap.md](./issue_033_dry_treemap.md) | Extrair lógica de vazio e layout compartilhado em `treemap.py` | ⏳ Backlog |
 
 ---

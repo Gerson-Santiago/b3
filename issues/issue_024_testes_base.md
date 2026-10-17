@@ -1,7 +1,7 @@
 # Issue 2.4 — Testes Unitários para `charts/base.py`
 
 **Fase:** 2 — Proteção
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 1–2 horas
 **Arquivo de teste a criar:** `tests/test_charts_base.py`
 
@@ -15,9 +15,9 @@
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Arquivo `tests/test_charts_base.py` criado.
-- [ ] `pytest tests/test_charts_base.py` passa com `0 erros`.
-- [ ] Todos os cenários abaixo cobertos.
+- [x] Arquivo `tests/test_charts_base.py` criado.
+- [x] `pytest tests/test_charts_base.py` passa com `0 erros`.
+- [x] Todos os cenários abaixo cobertos.
 
 ---
 
@@ -25,14 +25,14 @@
 
 ### `aplicar_layout_padrao(fig, *, altura, legenda_horizontal, margens)`
 
-- [ ] **Altura padrão:** Sem passar `altura` → `fig.layout.height == 400`.
-- [ ] **Altura customizada:** `altura=600` → `fig.layout.height == 600`.
-- [ ] **Separadores PT-BR:** `fig.layout.separators == ",."`.
-- [ ] **Fonte base:** `fig.layout.font.family` contém `"Arial"`.
-- [ ] **Legenda horizontal = True:** `fig.layout.legend.orientation == "h"`.
-- [ ] **Legenda horizontal = False:** `fig.layout.legend` não define `orientation == "h"` (ou legend é `None`/não configurada).
-- [ ] **Margens customizadas:** Passando `margens=dict(l=0, r=0, t=0, b=0)` → `fig.layout.margin.l == 0`.
-- [ ] **Retorna a própria figura:** A função retorna o mesmo objeto `fig` passado.
+- [x] **Altura padrão:** Sem passar `altura` → `fig.layout.height == 400`.
+- [x] **Altura customizada:** `altura=600` → `fig.layout.height == 600`.
+- [x] **Separadores PT-BR:** `fig.layout.separators == ",."`.
+- [x] **Fonte base:** `fig.layout.font.family` contém `"Arial"`.
+- [x] **Legenda horizontal = True:** `fig.layout.legend.orientation == "h"`.
+- [x] **Legenda horizontal = False:** `fig.layout.legend` não define `orientation == "h"` (ou legend é `None`/não configurada).
+- [x] **Margens customizadas:** Passando `margens=dict(l=0, r=0, t=0, b=0)` → `fig.layout.margin.l == 0`.
+- [x] **Retorna a própria figura:** A função retorna o mesmo objeto `fig` passado.
 
 ---
 

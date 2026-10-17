@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 
 from .base import aplicar_layout_padrao
 from .defaults import HEIGHT_TREEMAP, PIE_COLOR_SEQUENCE
+from dashboard.models.categorias import nome_exibicao_categoria
 
 
 def _preparar_dados_hierarquia(pos: pd.DataFrame, separar_bdr_acoes: bool) -> pd.DataFrame:
@@ -14,9 +15,7 @@ def _preparar_dados_hierarquia(pos: pd.DataFrame, separar_bdr_acoes: bool) -> pd
         df["categoria"] = "Ativos"
 
     if not separar_bdr_acoes:
-        df["categoria_hierarquia"] = df["categoria"].replace(
-            {"AÇÕES": "Bolsa de Valores", "BDR": "Bolsa de Valores", "TESOURO": "Tesouro Direto"}
-        )
+        df["categoria_hierarquia"] = df["categoria"].map(nome_exibicao_categoria)
     else:
         df["categoria_hierarquia"] = df["categoria"]
 

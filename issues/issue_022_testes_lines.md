@@ -1,7 +1,7 @@
 # Issue 2.2 — Testes Unitários para `charts/lines.py`
 
 **Fase:** 2 — Proteção
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 2–3 horas
 **Arquivo de teste a criar:** `tests/test_charts_lines.py`
 
@@ -15,9 +15,9 @@
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Arquivo `tests/test_charts_lines.py` criado.
-- [ ] `pytest tests/test_charts_lines.py` passa com `0 erros`.
-- [ ] Todos os cenários abaixo cobertos.
+- [x] Arquivo `tests/test_charts_lines.py` criado.
+- [x] `pytest tests/test_charts_lines.py` passa com `0 erros`.
+- [x] Todos os cenários abaixo cobertos.
 
 ---
 
@@ -25,19 +25,19 @@
 
 ### `line_evolucao(evol)`
 
-- [ ] **Cenário feliz:** DataFrame com `data` e `patrimonio` → retorna `go.Figure` válido.
-- [ ] **Altura correta:** `fig.layout.height == HEIGHT_LINE`.
-- [ ] **Separadores PT-BR:** `fig.layout.separators == ",."`.
-- [ ] **Hover correto:** `hovertemplate` da trace contém `"Patrimônio"`.
+- [x] **Cenário feliz:** DataFrame com `data` e `patrimonio` → retorna `go.Figure` válido.
+- [x] **Altura correta:** `fig.layout.height == HEIGHT_LINE`.
+- [x] **Separadores PT-BR:** `fig.layout.separators == ",."`.
+- [x] **Hover correto:** `hovertemplate` da trace contém `"Patrimônio"`.
 
 ### `line_comparativo_patrimonio_e_aportes(curva_aportes, curva_patrimonio)`
 
-- [ ] **Ambos presentes:** Dois DataFrames válidos → `len(fig.data) == 2`.
-- [ ] **Apenas aportes:** `curva_patrimonio=None` → `len(fig.data) == 1` (não lança exceção).
-- [ ] **Apenas patrimônio:** `curva_aportes=None` → `len(fig.data) == 1`.
-- [ ] **Ambos None:** Retorna `go.Figure` com `len(fig.data) == 0` sem lançar exceção.
-- [ ] **Ambos vazios (DataFrame empty):** Mesmo comportamento do caso `None`.
-- [ ] **Altura correta:** `fig.layout.height == HEIGHT_LINE_COMPARATIVO`.
+- [x] **Ambos presentes:** Dois DataFrames válidos → `len(fig.data) == 2`.
+- [x] **Apenas aportes:** `curva_patrimonio=None` → `len(fig.data) == 1` (não lança exceção).
+- [x] **Apenas patrimônio:** `curva_aportes=None` → `len(fig.data) == 1`.
+- [x] **Ambos None:** Retorna `go.Figure` com `len(fig.data) == 0` sem lançar exceção.
+- [x] **Ambos vazios (DataFrame empty):** Mesmo comportamento do caso `None`.
+- [x] **Altura correta:** `fig.layout.height == HEIGHT_LINE_COMPARATIVO`.
 
 ---
 
