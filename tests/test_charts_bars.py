@@ -6,7 +6,12 @@ import plotly.graph_objects as go
 import pytest
 
 from dashboard.charts.bars import bar_dy, bar_lucro_prejuizo, bar_proventos
-from dashboard.charts.defaults import COLOR_LUCRO, COLOR_PREJUIZO, HEIGHT_BAR
+from dashboard.charts.defaults import (
+    COLOR_LUCRO,
+    COLOR_PATRIMONIO,
+    COLOR_PREJUIZO,
+    HEIGHT_BAR,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +81,48 @@ def test_bar_proventos_hover_contem_real(proventos_sample):
     fig = bar_proventos(proventos_sample)
     hover = fig.data[0].hovertemplate
     assert "R$" in hover
+
+
+def test_bar_proventos_com_acumulado_padrao_retorna_duas_traces(proventos_sample):
+    fig = bar_proventos(proventos_sample)
+    assert len(fig.data) == 2
+    assert fig.data[0].type == "bar"
+    assert fig.data[1].type == "scatter"
+    assert fig.data[1].mode == "lines+markers"
+    assert fig.data[1].line.color == COLOR_PATRIMONIO
+    assert fig.data[1].yaxis == "y2"
+    assert fig.layout.yaxis2.overlaying == "y"
+
+
+def test_bar_proventos_sem_acumulado_retorna_uma_trace(proventos_sample):
+    fig = bar_proventos(proventos_sample, mostrar_acumulado=False)
+    assert len(fig.data) == 1
+    assert fig.data[0].type == "bar"
+
+
+def test_bar_proventos_acumulado_valores_corretos(proventos_sample):
+    fig = bar_proventos(proventos_sample, mostrar_acumulado=True)
+    expected_acumulado = [150.0, 370.50, 550.50]
+    assert list(fig.data[1].y) == expected_acumulado
+
+
+def test_bar_proventos_acumulado_reinicia_na_virada_do_ano():
+    df_multi_ano = pd.DataFrame(
+        {
+            "mes": ["2023-11", "2023-12", "2024-01", "2024-02"],
+            "valor_liquido": [100.0, 150.0, 200.0, 50.0],
+        }
+    )
+    fig = bar_proventos(df_multi_ano, mostrar_acumulado=True)
+    expected_acumulado = [100.0, 250.0, 200.0, 250.0]
+    assert list(fig.data[1].y) == expected_acumulado
+
+
+def test_bar_proventos_vazio_com_mostrar_acumulado():
+    empty_df = pd.DataFrame(columns=["mes", "valor_liquido"])
+    fig = bar_proventos(empty_df, mostrar_acumulado=True)
+    assert isinstance(fig, go.Figure)
+    assert len(fig.data) == 0
 
 
 # ---------------------------------------------------------------------------

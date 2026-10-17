@@ -16,7 +16,19 @@ def render(state: DashboardState) -> None:
     if state.proventos.empty:
         st.info("Não há proventos registrados no período selecionado.")
     else:
-        st.plotly_chart(bar_proventos(state.proventos), width="stretch")
+        col_header, col_toggle = st.columns([3, 1])
+        with col_header:
+            st.markdown("### Histórico Mensal de Proventos")
+        with col_toggle:
+            mostrar_acumulado = st.toggle(
+                "Acumulado Anual",
+                value=True,
+                key="proventos_mostrar_acumulado",
+            )
+        st.plotly_chart(
+            bar_proventos(state.proventos, mostrar_acumulado=mostrar_acumulado),
+            width="stretch",
+        )
 
     st.markdown("### Métricas de Dividend Yield (LTM) & Yield on Cost")
     if state.dy_metrics.empty:

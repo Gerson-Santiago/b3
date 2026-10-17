@@ -6,6 +6,12 @@
 > 3. Minha carteira está diversificada ou concentrada demais?
 > 4. Quanto recebi de dividendos/JCP e qual é a tendência?
 
+> **Fluxo Ideal de Refatoração em Cada Issue:**
+> 1. **Proteja:** Verifique/crie os testes unitários cobrindo o comportamento atual.
+> 2. **Isole a Verdade (SSoT):** Identifique regras duplicadas e centralize-as em uma única estrutura; ajuste os testes para refletir essa centralização.
+> 3. **Elimine a Duplicação (DRY):** Limpe a redundância tanto no código de teste quanto no código de produção.
+> 4. **Divida (SRP):** Quebre funções e classes grandes em componentes coesos, validando cada passo com a execução contínua dos testes.
+
 ---
 
 ## Fases e Status
@@ -17,6 +23,11 @@
 | **Fase 3** | `charts/` | SSoT & DRY: Consolidação da Camada de Visualização | ✅ Concluído |
 | **Fase 4** | `charts/` + `views/` | Novos Gráficos: P&L e Rentabilidade Comparativa | ✅ Concluído |
 | **Fase 5** | `metrics/` + `views/` | Calendário de Proventos e Fluxo de Caixa | ⏳ Backlog |
+| **Fase 6** | `loaders/` + `metrics/` | Loader de Proventos Recebidos & Reconciliação | ⏳ Backlog |
+| **Fase 7** | `views/` + `charts/` | Posição Interativa & Alocação Estendida (Setor/Corretora) | ⏳ Backlog |
+| **Fase 8** | `metrics/` + `views/` | Vendas, Lucro Realizado e Controle Fiscal (IR) | ⏳ Backlog |
+| **Fase 9** | `metrics/` + `views/` | Gestão de Risco e Sinais de Realização de Lucro | ⏳ Backlog |
+| **Org** | `loaders/` + `models/` | Limpeza e Desacoplamento Estrutural (`loader.py`, `utils.py`) | ⏳ Backlog |
 
 ---
 
@@ -72,12 +83,77 @@
 
 ## Fase 5 — Calendário de Proventos e Fluxo de Caixa ⏳
 
-> **Princípio:** Fechar a última lacuna das 4 perguntas — a tendência e sazonalidade da renda passiva.
+> **Princípio:** Fechar a última lacuna das 4 perguntas — a tendência, sazonalidade e fluxo de proventos recebidos.
 
 | # | Arquivo de Issue | Descrição | Status |
 | :--- | :--- | :--- | :---: |
-| 5.1 | [issue_051_proventos_acumulado.md](./issue_051_proventos_acumulado.md) | Adicionar linha de acumulado anual ao `bar_proventos()` | ⏳ Backlog |
+| 5.1 | [issue_051_proventos_acumulado.md](./issue_051_proventos_acumulado.md) | Adicionar linha de acumulado anual ao `bar_proventos()` | ✅ Concluído |
 | 5.2 | [issue_052_proventos_tipo.md](./issue_052_proventos_tipo.md) | Segmentar `bar_proventos()` por tipo: Dividendos vs JCP vs FII | ⏳ Backlog |
+| 5.3 | [issue_053_proventos_calendario.md](./issue_053_proventos_calendario.md) | Calendário de proventos por data de pagamento | ⏳ Backlog |
+| 5.4 | [issue_054_proventos_ranking.md](./issue_054_proventos_ranking.md) | Ranking dos maiores pagadores (top 10 por DY e por R$) | ⏳ Backlog |
+
+---
+
+## Fase 6 — Loader de Proventos Recebidos & Reconciliação ⏳
+
+> **Princípio:** Integrar a fonte dedicada de proventos da B3 e cruzar com os eventos de movimentação.
+
+| # | Arquivo de Issue | Descrição | Status |
+| :--- | :--- | :--- | :---: |
+| 6.1 | [issue_061_schema_proventos_recebidos.md](./issue_061_schema_proventos_recebidos.md) | Documentação de schema do export de proventos recebidos | ⏳ Backlog |
+| 6.2 | [issue_062_aliases_proventos_recebidos.md](./issue_062_aliases_proventos_recebidos.md) | Mapeamento centralizado de aliases para proventos recebidos | ⏳ Backlog |
+| 6.3 | [issue_063_loader_proventos_recebidos.md](./issue_063_loader_proventos_recebidos.md) | Reader isolado e tipado em `loaders/proventos_recebidos.py` | ⏳ Backlog |
+| 6.4 | [issue_064_reconciliacao_proventos.md](./issue_064_reconciliacao_proventos.md) | Cálculo de conciliação cruzada (Movimentação vs Extrato Proventos) | ⏳ Backlog |
+| 6.5 | [issue_065_view_reconciliacao_proventos.md](./issue_065_view_reconciliacao_proventos.md) | Exibição de auditoria de proventos em `views/reconciliacao.py` | ⏳ Backlog |
+
+---
+
+## Fase 7 — Posição Interativa & Alocação Estendida ⏳
+
+> **Princípio:** Transformar os cards estáticos em visão tabular dinâmica com recortes por corretora e setor.
+
+| # | Arquivo de Issue | Descrição | Status |
+| :--- | :--- | :--- | :---: |
+| 7.1 | [issue_071_tabela_posicao_ordenavel.md](./issue_071_tabela_posicao_ordenavel.md) | Tabela `st.dataframe` ordenável de custódia com PM vs Atual | ⏳ Backlog |
+| 7.2 | [issue_072_filtro_categoria_tabela.md](./issue_072_filtro_categoria_tabela.md) | Filtro dinâmico por classe de ativos e subtotais na tabela | ⏳ Backlog |
+| 7.3 | [issue_073_alocacao_corretora.md](./issue_073_alocacao_corretora.md) | Gráfico donut e tabela de alocação por corretora/instituição | ⏳ Backlog |
+| 7.4 | [issue_074_alocacao_setor.md](./issue_074_alocacao_setor.md) | Mapeamento canônico de setores e visão de diversificação setorial | ⏳ Backlog |
+
+---
+
+## Fase 8 — Vendas, Lucro Realizado e Controle Fiscal (IR) ⏳
+
+> **Princípio:** Registrar histórico de liquidações e automatizar regras de tributação da Receita Federal.
+
+| # | Arquivo de Issue | Descrição | Status |
+| :--- | :--- | :--- | :---: |
+| 8.1 | [issue_081_lucro_realizado.md](./issue_081_lucro_realizado.md) | Apuração de lucro/prejuízo por venda individual (Preço Médio Ponderado) | ⏳ Backlog |
+| 8.2 | [issue_082_agregacao_mensal_anual_lucro.md](./issue_082_agregacao_mensal_anual_lucro.md) | Agregação temporal de resultados realizados (mensal e anual) | ⏳ Backlog |
+| 8.3 | [issue_083_calculo_ir_isencao.md](./issue_083_calculo_ir_isencao.md) | Motor fiscal: isenção R$ 20k ações swing, cestas de compensação e DARF 6015 | ⏳ Backlog |
+| 8.4 | [issue_084_view_vendas_ir.md](./issue_084_view_vendas_ir.md) | Nova aba "Vendas & IR" com painel de DARF e histórico de vendas | ⏳ Backlog |
+
+---
+
+## Fase 9 — Gestão de Risco e Sinais de Realização de Lucro ⏳
+
+> **Princípio:** Prover ferramentas ativas para decisões de rebalanceamento e controle de concentração.
+
+| # | Arquivo de Issue | Descrição | Status |
+| :--- | :--- | :--- | :---: |
+| 9.1 | [issue_091_metrics_risco.md](./issue_091_metrics_risco.md) | Métricas de risco: concentração Top 5, exposição cambial e HHI | ⏳ Backlog |
+| 9.2 | [issue_092_metrics_sinais_venda.md](./issue_092_metrics_sinais_venda.md) | Gatilhos de rebalanceamento: peso vs meta, lucro esticado e DY | ⏳ Backlog |
+| 9.3 | [issue_093_view_risco_sinais.md](./issue_093_view_risco_sinais.md) | Cockpit de risco e painel semafórico de alertas (🟢🟡🔴) | ⏳ Backlog |
+
+---
+
+## Organização e Qualidade Arquitetural (Issues Transversais) ⏳
+
+> **Princípio:** Eliminar código morto, depósitos genéricos e ambiguidade na árvore de arquivos.
+
+| # | Arquivo de Issue | Descrição | Status |
+| :--- | :--- | :--- | :---: |
+| Org.1 | [issue_org_01_loader_raiz.md](./issue_org_01_loader_raiz.md) | Unificar `loader.py` na raiz sob o subpacote `loaders/` | ⏳ Backlog |
+| Org.2 | [issue_org_02_limpeza_utils_columns.md](./issue_org_02_limpeza_utils_columns.md) | Modularizar `utils.py` (parsers vs I/O) e unificar `columns.py` | ⏳ Backlog |
 
 ---
 

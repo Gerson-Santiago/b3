@@ -8,20 +8,38 @@ from .base import aplicar_layout_padrao
 from .defaults import (
     COLOR_DY,
     COLOR_LUCRO,
+    COLOR_PATRIMONIO,
     COLOR_PREJUIZO,
     COLOR_PROVENTOS,
     HEIGHT_BAR,
 )
 
 
-def bar_proventos(proventos: pd.DataFrame | None) -> go.Figure:
+def bar_proventos(
+    proventos: pd.DataFrame | None,
+    mostrar_acumulado: bool = True,
+) -> go.Figure:
     if proventos is None or proventos.empty:
         fig = go.Figure()
         fig.update_layout(title=dict(text="Histórico Mensal de Proventos Recebidos"))
         return aplicar_layout_padrao(fig, altura=HEIGHT_BAR)
 
+    df = proventos.copy()
+    if "valor_liquido" in df.columns:
+        df["valor_liquido"] = df["valor_liquido"].fillna(0.0)
+
+    # Ordenação cronológica e cálculo do acumulado por ano
+    if "mes" in df.columns:
+        mes_dt = pd.to_datetime(df["mes"])
+        df["_dt"] = mes_dt
+        df = df.sort_values("_dt").reset_index(drop=True)
+        ano = df["_dt"].dt.year
+        df["acumulado_ano"] = df.groupby(ano)["valor_liquido"].cumsum()
+    else:
+        df["acumulado_ano"] = df["valor_liquido"].cumsum() if "valor_liquido" in df.columns else 0.0
+
     fig = px.bar(
-        proventos,
+        df,
         x="mes",
         y="valor_liquido",
         title="Histórico Mensal de Proventos Recebidos",
@@ -29,8 +47,39 @@ def bar_proventos(proventos: pd.DataFrame | None) -> go.Figure:
         color_discrete_sequence=[COLOR_PROVENTOS],
     )
     fig.update_traces(
-        hovertemplate="<b>Mês:</b> %{x}<br><b>Recebido:</b> R$ %{y:,.2f}<extra></extra>"
+        name="Mensal",
+        hovertemplate="<b>Mês:</b> %{x}<br><b>Recebido:</b> R$ %{y:,.2f}<extra></extra>",
     )
+
+    if mostrar_acumulado:
+        fig.data[0].showlegend = True
+        fig.add_trace(
+            go.Scatter(
+                x=df["mes"],
+                y=df["acumulado_ano"],
+                mode="lines+markers",
+                name="Acumulado no Ano",
+                line=dict(color=COLOR_PATRIMONIO, width=2.5),
+                marker=dict(size=6, color=COLOR_PATRIMONIO),
+                yaxis="y2",
+                hovertemplate="<b>Mês:</b> %{x}<br><b>Acumulado no Ano:</b> R$ %{y:,.2f}<extra></extra>",
+            )
+        )
+        fig.update_layout(
+            yaxis2=dict(
+                title="Acumulado no Ano (R$)",
+                overlaying="y",
+                side="right",
+                showgrid=False,
+            )
+        )
+        return aplicar_layout_padrao(
+            fig,
+            altura=HEIGHT_BAR,
+            legenda_horizontal=True,
+            margens=dict(l=30, r=50, t=60, b=40),
+        )
+
     return aplicar_layout_padrao(fig, altura=HEIGHT_BAR, legenda_horizontal=False)
 
 
