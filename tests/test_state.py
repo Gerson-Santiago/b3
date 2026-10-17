@@ -125,3 +125,86 @@ class TestImutabilidade:
         # Modificar s1.pos não deve afetar s2.pos
         s1.pos["_test"] = 1
         assert "_test" not in s2.pos.columns
+
+
+# ---------------------------------------------------------------------------
+# R10: Filtro de data não pode corromper Preço Médio nem Quantidade
+# ---------------------------------------------------------------------------
+
+class TestR10PrecoMedioQuantidadeFiltroData:
+    @pytest.fixture()
+    def mov_historico_completo(self):
+        """Histórico com compras antigas (2023) e recentes (2024) para PETR4 e GOGL35."""
+        return pd.DataFrame(
+            {
+                "data": pd.to_datetime(["2023-01-15", "2023-06-10", "2024-08-20", "2024-09-01"]),
+                "mes": ["2023-01", "2023-06", "2024-08", "2024-09"],
+                "produto": ["PETR4", "GOGL35", "PETR4", "GOGL35"],
+                "movimentacao": ["Compra", "Compra", "Compra", "Dividendo"],
+                "entrada_saida": ["Crédito", "Crédito", "Crédito", "Crédito"],
+                "quantidade": [10.0, 20.0, 10.0, 0.0],
+                "qtd_liquida": [10.0, 20.0, 10.0, 0.0],
+                "valor_liquido": [300.0, 1000.0, 400.0, 50.0],
+                "instituicao": ["XP", "XP", "XP", "XP"],
+            }
+        )
+
+    def test_start_date_diferente_preserva_mesmo_preco_medio_e_quantidade(self, mov_historico_completo):
+        """(a) start_date no início vs start_date 6 meses atrás devolve o MESMO PM e MESMA quantidade para GOGL35 e PETR4."""
+        pos_df = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs", "categoria"])
+        pos_filtered = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs", "categoria"])
+        end_date = date(2024, 12, 31)
+
+        # Filtro 1: start_date no início (2023-01-01) -> pega tudo
+        mov_inicio = mov_historico_completo[mov_historico_completo["data"] >= pd.Timestamp("2023-01-01")].copy()
+
+        # Filtro 2: start_date 6 meses atrás (2024-06-01) -> corta compras de 2023
+        mov_6meses = mov_historico_completo[mov_historico_completo["data"] >= pd.Timestamp("2024-06-01")].copy()
+
+        state_inicio = DashboardState.build(
+            pos_df=pos_df,
+            mov_df=mov_historico_completo,
+            mov_filtered=mov_inicio,
+            pos_filtered=pos_filtered,
+            end_date=end_date,
+        )
+
+        state_6meses = DashboardState.build(
+            pos_df=pos_df,
+            mov_df=mov_historico_completo,
+            mov_filtered=mov_6meses,
+            pos_filtered=pos_filtered,
+            end_date=end_date,
+        )
+
+        # Checar PETR4
+        petr_inicio = state_inicio.pos_cards[state_inicio.pos_cards["produto"] == "PETR4"].iloc[0]
+        petr_6m = state_6meses.pos_cards[state_6meses.pos_cards["produto"] == "PETR4"].iloc[0]
+        assert petr_6m["quantidade"] == pytest.approx(petr_inicio["quantidade"])
+        assert petr_6m["preco_medio"] == pytest.approx(petr_inicio["preco_medio"])
+
+        # Checar GOGL35 (cuja compra foi em 2023; em 2024 só houve dividendo)
+        gogl_inicio = state_inicio.pos_cards[state_inicio.pos_cards["produto"] == "GOGL35"].iloc[0]
+        gogl_6m = state_6meses.pos_cards[state_6meses.pos_cards["produto"] == "GOGL35"].iloc[0]
+        assert gogl_6m["quantidade"] == pytest.approx(gogl_inicio["quantidade"])
+        assert gogl_6m["preco_medio"] == pytest.approx(gogl_inicio["preco_medio"])
+
+    def test_filtro_de_produto_continua_restringindo_resultado(self, mov_historico_completo):
+        """(b) o filtro de produto continua restringindo o resultado de pos e pos_cards."""
+        pos_df = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs", "categoria"])
+        pos_filtered = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs", "categoria"])
+        end_date = date(2024, 12, 31)
+
+        mov_petr4_only = mov_historico_completo[mov_historico_completo["produto"] == "PETR4"].copy()
+
+        state = DashboardState.build(
+            pos_df=pos_df,
+            mov_df=mov_petr4_only,
+            mov_filtered=mov_petr4_only,
+            pos_filtered=pos_filtered,
+            end_date=end_date,
+        )
+
+        assert set(state.pos["produto"].unique()) == {"PETR4"}
+        assert set(state.pos_cards["produto"].unique()) == {"PETR4"}
+

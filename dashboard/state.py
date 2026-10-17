@@ -18,6 +18,7 @@ try:
     from dashboard.metrics.preco_medio import compute_preco_medio
     from dashboard.metrics.proventos import compute_proventos
     from dashboard.models.ativos import renomear_ativo
+    from dashboard.models.eventos import aplicar_eventos_ordenados
 except ImportError:  # pragma: no cover
     from metrics.dy import compute_dy_metrics
     from metrics.evolucao import compute_evolucao_separada
@@ -25,6 +26,7 @@ except ImportError:  # pragma: no cover
     from metrics.preco_medio import compute_preco_medio
     from metrics.proventos import compute_proventos
     from models.ativos import renomear_ativo
+    from models.eventos import aplicar_eventos_ordenados
 
 # Categorias que compõem "Bolsa de Valores" no gráfico agrupado
 _CATEGORIAS_BOLSA = {"AÇÕES", "BDR"}
@@ -119,6 +121,7 @@ class DashboardState:
         mov_filtered: pd.DataFrame,
         pos_filtered: pd.DataFrame,
         end_date: date,
+        mov_df: pd.DataFrame | None = None,
     ) -> "DashboardState":
         """Calcula todos os dados derivados e retorna um ``DashboardState``.
 
@@ -128,18 +131,50 @@ class DashboardState:
             Snapshot de posição completo (sem filtros de sidebar), usado
             como SSOT do mapa de categorias e para cálculo de DY.
         mov_filtered:
-            Movimentações já filtradas pelos filtros de sidebar.
+            Movimentações já filtradas pelos filtros de sidebar (usado para proventos
+            e exibições no período selecionado).
         pos_filtered:
             Posição já filtrada pelos filtros de sidebar.
         end_date:
-            Data de corte para cálculo de métricas de DY.
+            Data de corte para cálculo de métricas de DY, preço médio e posição.
+        mov_df:
+            Movimentação completa (opcional). Se fornecido, o preço médio e a posição
+            de fallback usam o histórico inteiro até ``end_date`` (sem corte de ``start_date``).
         """
         # SSOT do mapa de categorias — sempre vem do pos_df sem filtro
         mapa_cat = obter_mapa_categorias(pos_df) if not pos_df.empty else {}
 
+        # Determina o histórico de movimentações até end_date (sem corte de start_date)
+        if mov_df is not None and not mov_df.empty:
+            mov_ate_end_date = mov_df.copy()
+            if end_date is not None and "data" in mov_ate_end_date.columns:
+                mov_ate_end_date["data"] = pd.to_datetime(mov_ate_end_date["data"], errors="coerce")
+                mov_ate_end_date = mov_ate_end_date[mov_ate_end_date["data"] <= pd.Timestamp(end_date)]
+            if not mov_filtered.empty:
+                if "produto" in mov_filtered.columns and "produto" in mov_ate_end_date.columns:
+                    prods_filtrados = set(mov_filtered["produto"].dropna().unique())
+                    if prods_filtrados < set(mov_df["produto"].dropna().unique()):
+                        mov_ate_end_date = mov_ate_end_date[mov_ate_end_date["produto"].isin(prods_filtrados)]
+                if "instituicao" in mov_filtered.columns and "instituicao" in mov_ate_end_date.columns:
+                    insts_filtradas = set(mov_filtered["instituicao"].dropna().unique())
+                    if insts_filtradas < set(mov_df["instituicao"].dropna().unique()):
+                        mov_ate_end_date = mov_ate_end_date[mov_ate_end_date["instituicao"].isin(insts_filtradas)]
+        else:
+            mov_ate_end_date = mov_filtered
+
         # Posição consolidada
-        base_pos = pos_filtered if not pos_filtered.empty else mov_filtered
-        pos = compute_position(base_pos)
+        if not pos_filtered.empty:
+            pos = compute_position(pos_filtered)
+        else:
+            # Fallback para movimentações usando a SSOT de eventos (aplicar_eventos_ordenados)
+            resumo_mov = aplicar_eventos_ordenados(mov_ate_end_date)
+            if not resumo_mov.empty:
+                pos = resumo_mov[resumo_mov["quantidade"].abs() > 0].copy()
+                pos["valor"] = pos["custo_total"].round(2)
+                pos["valor_abs"] = pos["valor"].abs().round(2)
+            else:
+                pos = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs"])
+
         if not pos.empty:
             pos = pos.copy()
             pos["categoria"] = pos["produto"].apply(
@@ -156,8 +191,8 @@ class DashboardState:
 
         pos_categoria_agrupada = _agrupar_bolsa(pos_categoria)
 
-        # pos_cards: enriquece pos com preco_medio/custo_total/pl/variacao_pct
-        pm_df = compute_preco_medio(mov_filtered)
+        # pos_cards: enriquece pos com preco_medio/custo_total usando histórico até end_date
+        pm_df = compute_preco_medio(mov_ate_end_date)
         pos_cards = _enriquecer_pos_cards(pos, pm_df)
 
         proventos = compute_proventos(mov_filtered)

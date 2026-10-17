@@ -47,7 +47,7 @@ def _normalizar_qtd_df(df: Any, *, nome: str = "qtd") -> pd.DataFrame:
     return payload
 
 
-def quantidade_ate(mov_df, data_corte, inclusive: bool = True):
+def quantidade_ate(mov_df, data_corte, inclusive: bool = True, aplicar_define: bool = True):
     if mov_df is None or mov_df.empty:
         return {}
 
@@ -60,7 +60,7 @@ def quantidade_ate(mov_df, data_corte, inclusive: bool = True):
         else:
             base = base[base["data"] < limite]
 
-    resumo = aplicar_eventos_ordenados(base)
+    resumo = aplicar_eventos_ordenados(base, aplicar_define=aplicar_define)
     if resumo.empty:
         return {}
 
@@ -70,7 +70,7 @@ def quantidade_ate(mov_df, data_corte, inclusive: bool = True):
     return dict(zip(total["produto"], total["quantidade"]))
 
 
-def comparar(qtd_mov, pos_df):
+def comparar(qtd_mov, pos_df, mov_df=None, data_corte=None):
     mov = _normalizar_qtd_df(qtd_mov, nome="movimentação")
     pos = _normalizar_qtd_df(pos_df, nome="posição")
 
@@ -85,6 +85,17 @@ def comparar(qtd_mov, pos_df):
     tabela["qtd_mov"] = pd.to_numeric(tabela["qtd_mov"], errors="coerce").fillna(0.0)
     tabela["qtd_pos"] = pd.to_numeric(tabela["qtd_pos"], errors="coerce").fillna(0.0)
     tabela["delta"] = pd.to_numeric(tabela["delta"], errors="coerce").fillna(0.0)
+
+    if mov_df is not None:
+        corte = data_corte if data_corte is not None else "2099-12-31"
+        qtd_sem_define = quantidade_ate(mov_df, corte, aplicar_define=False)
+        tabela["observacao"] = tabela.apply(
+            lambda r: "ajuste por atualização"
+            if abs(qtd_sem_define.get(r["ativo"], r["qtd_mov"]) - r["qtd_mov"]) > 1e-4
+            else "",
+            axis=1,
+        )
+
     return tabela.sort_values("ativo", kind="mergesort").reset_index(drop=True)
 
 

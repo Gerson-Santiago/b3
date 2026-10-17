@@ -149,7 +149,13 @@ def main():
     mov_filtered = filtrar_dataframe(mov_df, instituicoes=selected_inst, produtos=selected_prod, start_date=start_date, end_date=end_date)
     pos_filtered = filtrar_dataframe(pos_df, instituicoes=selected_inst, produtos=selected_prod)
 
-    state = DashboardState.build(pos_df=pos_df, mov_filtered=mov_filtered, pos_filtered=pos_filtered, end_date=end_date)
+    state = DashboardState.build(
+        pos_df=pos_df,
+        mov_df=mov_df,
+        mov_filtered=mov_filtered,
+        pos_filtered=pos_filtered,
+        end_date=end_date,
+    )
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Movimentações Filtradas", f"{len(mov_filtered):,}" if not mov_filtered.empty else "0")

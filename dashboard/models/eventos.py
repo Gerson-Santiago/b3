@@ -79,7 +79,7 @@ def efeito_movimentacao(movimentacao: object, entrada_saida: object) -> EfeitoMo
     )
 
 
-def aplicar_eventos_ordenados(df):
+def aplicar_eventos_ordenados(df, aplicar_define: bool = True):
     if df is None or df.empty:
         return pd.DataFrame(columns=["produto", "quantidade", "custo_total", "preco_medio"])
 
@@ -135,10 +135,16 @@ def aplicar_eventos_ordenados(df):
                 texto = movimentacao.lower()
 
                 if efeito.quantidade == "define":
-                    quantidade_atual = abs(qtd_liquida)
-                    if quantidade_atual == 0:
-                        custo_total = 0.0
-                    continue
+                    if aplicar_define:
+                        quantidade_atual = abs(qtd_liquida)
+                        if quantidade_atual == 0:
+                            custo_total = 0.0
+                        continue
+                    else:
+                        quantidade_atual += qtd_liquida
+                        if quantidade_atual < 0:
+                            quantidade_atual = 0.0
+                        continue
 
                 if "grupamento" in texto or "agrupamento" in texto:
                     if abs(qtd_liquida) > 0:

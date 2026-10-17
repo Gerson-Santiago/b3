@@ -134,3 +134,30 @@ def test_compute_preco_medio_uses_nan_when_cost_is_unknown_for_roxo34_and_matche
         linha = final[final["produto_norm"] == simbolo]
         assert not linha.empty
         assert linha["quantidade"].iloc[0] == pytest.approx(quantidade)
+
+
+def test_reconciliacao_sinaliza_ajuste_por_atualizacao_roxo34():
+    """Valida que ROXO34 diverge sem define e é sinalizado como 'ajuste por atualização'."""
+    mov = read_movimentacao_file(Path(__file__).resolve().parent / "fixtures" / "movimentacao_7_ativos.xlsx")
+    pos = read_posicao_file(Path(__file__).resolve().parent / "fixtures" / "posicao_7_ativos.xlsx")
+
+    # Quantidade com define (20.0) vs sem define (40.0)
+    qtd_com_define = quantidade_ate(mov, "2026-10-16", aplicar_define=True)
+    qtd_sem_define = quantidade_ate(mov, "2026-10-16", aplicar_define=False)
+
+    assert qtd_com_define["ROXO34"] == pytest.approx(20.0)
+    assert qtd_sem_define["ROXO34"] == pytest.approx(40.0)
+    assert qtd_com_define["ROXO34"] != qtd_sem_define["ROXO34"]
+
+    # Comparar com auditoria de atualização
+    tabela = comparar(qtd_com_define, pos, mov_df=mov, data_corte="2026-10-16")
+    assert "observacao" in tabela.columns
+
+    linha_roxo = tabela[tabela["ativo"] == "ROXO34"].iloc[0]
+    assert linha_roxo["observacao"] == "ajuste por atualização"
+    assert linha_roxo["delta"] == pytest.approx(0.0)
+
+    # Ativos sem evento de atualização (ex: CPFE3) não devem ter a observação
+    linha_cpfe = tabela[tabela["ativo"] == "CPFE3"].iloc[0]
+    assert linha_cpfe["observacao"] == ""
+
