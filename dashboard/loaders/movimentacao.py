@@ -103,7 +103,7 @@ def read_movimentacao_csv(file_source: Union[str, Path, BytesIO, object]):
         raise ValueError(f"Colunas ausentes na movimentação após normalização: {sorted(missing)}")
 
     df = df.copy()
-    df["data"] = pd.to_datetime(df["data"], format="%d/%m/%Y", errors="coerce")
+    df["data"] = pd.to_datetime(df["data"], format="%d/%m/%Y", dayfirst=True, errors="coerce")
 
     for col in ["quantidade", "preco_unitario", "valor_operacao"]:
         df[col] = df[col].apply(parse_money)
@@ -139,7 +139,10 @@ def read_movimentacao_excel(file_source: Union[str, Path, BytesIO, object]):
             continue
 
         df = df.copy()
-        df["data"] = pd.to_datetime(df["data"], errors="coerce")
+        if pd.api.types.is_datetime64_any_dtype(df["data"]):
+            df["data"] = pd.to_datetime(df["data"], errors="coerce")
+        else:
+            df["data"] = pd.to_datetime(df["data"].astype(str), dayfirst=True, errors="coerce")
         for col in ["quantidade", "preco_unitario", "valor_operacao"]:
             df[col] = df[col].apply(parse_money)
 

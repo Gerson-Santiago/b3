@@ -51,6 +51,12 @@ class B3ArchitectureTest(unittest.TestCase):
             app.load_default_posicao()
             self.assertTrue(any(str(call.args[0]).endswith(str(posicao_xlsx)) for call in mock_pos.call_args_list))
 
+    def test_dashboard_uses_streamlit_container_width(self):
+        source = Path(__file__).resolve().parents[1] / "dashboard" / "app.py"
+        rendered = source.read_text(encoding="utf-8")
+        self.assertIn('use_container_width=True', rendered)
+        self.assertNotIn('width="stretch"', rendered)
+
 
 class B3ColumnsAndParsingTest(unittest.TestCase):
     def test_normaliza_colunas_maps_aliases(self):
@@ -146,15 +152,49 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
         self.assertAlmostEqual(cpfe["preco_medio"], 30.78, places=2)
         self.assertAlmostEqual(petr["preco_medio"], 32.61, places=2)
 
+    def test_compute_preco_medio_googl35_uses_real_xlsx_fixture_and_corporate_events(self):
+        path = Path(__file__).resolve().parents[1] / "xlsx" / "movimentacao" / "movimentacao-2026-10-16-20-22-00.xlsx"
+        df = read_movimentacao_file(path)
+        googl = df[df["produto"].astype(str).str.contains("GOGL35", case=False, na=False)].copy()
+        googl = googl.sort_values("data", kind="mergesort")
+
+        result = compute_preco_medio(googl)
+        googl_result = result[result["produto"].astype(str).str.contains("GOGL35", case=False, na=False)].iloc[0]
+
+        self.assertAlmostEqual(googl_result["quantidade"], 17.0, places=5)
+        self.assertAlmostEqual(googl_result["preco_medio"], 63.78, places=2)
+
     def test_classificacao_movimentacao_distinguishes_proventos_e_ajustes(self):
         from dashboard.models.movimentacao import TipoMovimentacao, classificar_movimentacao
 
         self.assertEqual(classificar_movimentacao("dividendo"), TipoMovimentacao.PROVENTO)
+        self.assertEqual(classificar_movimentacao("atualização"), TipoMovimentacao.PROVENTO)
         self.assertEqual(classificar_movimentacao("desdobro de ações"), TipoMovimentacao.DESDOBRAMENTO)
         self.assertEqual(classificar_movimentacao("grupamento"), TipoMovimentacao.GRUPAMENTO)
         self.assertEqual(classificar_movimentacao("compra"), TipoMovimentacao.COMPRA)
         self.assertEqual(classificar_movimentacao("venda"), TipoMovimentacao.VENDA)
         self.assertEqual(classificar_movimentacao("leilão de fração"), TipoMovimentacao.AJUSTE_QUANTIDADE)
+
+    def test_compute_preco_medio_ignores_sell_events_without_masking_cost(self):
+        df = pd.DataFrame(
+            {
+                "produto": ["PETR4", "PETR4", "PETR4"],
+                "data": ["2024-01-10", "2024-01-15", "2024-01-20"],
+                "movimentacao": ["compra", "venda", "compra"],
+                "entrada_saida": ["credito", "debito", "credito"],
+                "quantidade": [10, 3, 2],
+                "valor_operacao": [300, 90, 70],
+            }
+        )
+        df["qtd_liquida"] = df["quantidade"] * df["entrada_saida"].map({"credito": 1, "debito": -1})
+        df["valor_liquido"] = df["valor_operacao"] * df["entrada_saida"].map({"credito": 1, "debito": -1})
+
+        result = compute_preco_medio(df)
+        petr = result[result["produto"] == "PETR4"].iloc[0]
+
+        self.assertAlmostEqual(petr["quantidade"], 9.0)
+        self.assertAlmostEqual(petr["custo_total"], 280.0)
+        self.assertAlmostEqual(petr["preco_medio"], 31.11111111111111, places=4)
 
     def test_compute_preco_medio_googl35_handles_corporate_events(self):
         df = pd.DataFrame(
@@ -201,9 +241,9 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
         result = compute_preco_medio(df)
         googl = result[result["produto"] == "GOGL35"].iloc[0]
 
-        self.assertAlmostEqual(googl["quantidade"], 17.6, places=5)
-        self.assertAlmostEqual(googl["custo_total"], 1150.12, places=2)
-        self.assertAlmostEqual(googl["preco_medio"], 65.35, places=2)
+        self.assertAlmostEqual(googl["quantidade"], 17.0, places=5)
+        self.assertAlmostEqual(googl["custo_total"], 1084.23, places=2)
+        self.assertAlmostEqual(googl["preco_medio"], 63.78, places=2)
 
     def test_compute_position_categoria_uses_sheet_category_when_available(self):
         df = pd.DataFrame(

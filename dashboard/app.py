@@ -124,9 +124,9 @@ def main():
     else:
         col_pie1, col_pie2 = st.columns(2)
         with col_pie1:
-            st.plotly_chart(pie_carteira(pos), width="stretch")
+            st.plotly_chart(pie_carteira(pos), use_container_width=True)
         with col_pie2:
-            st.plotly_chart(pie_carteira_por_categoria(pos_categoria), width="stretch")
+            st.plotly_chart(pie_carteira_por_categoria(pos_categoria), use_container_width=True)
 
         st.markdown("### Distribuição por categoria")
         pie_cols = st.columns(3)
@@ -134,43 +134,43 @@ def main():
             if pos_bdr.empty:
                 st.info("Sem BDR")
             else:
-                st.plotly_chart(pie_categoria(pos_bdr), width="stretch")
+                st.plotly_chart(pie_categoria(pos_bdr), use_container_width=True)
         with pie_cols[1]:
             if pos_acoes.empty:
                 st.info("Sem Ações")
             else:
-                st.plotly_chart(pie_categoria(pos_acoes), width="stretch")
+                st.plotly_chart(pie_categoria(pos_acoes), use_container_width=True)
         with pie_cols[2]:
             if pos_tesouro.empty:
                 st.info("Sem Tesouro Direto")
             else:
-                st.plotly_chart(pie_categoria(pos_tesouro), width="stretch")
+                st.plotly_chart(pie_categoria(pos_tesouro), use_container_width=True)
 
     st.subheader("Proventos por mês")
     if proventos.empty:
         st.info("Não há proventos no período selecionado.")
     else:
-        st.plotly_chart(bar_proventos(proventos), width="stretch")
+        st.plotly_chart(bar_proventos(proventos), use_container_width=True)
 
     st.subheader("Evolução do patrimônio")
     if evol.empty:
         st.info("Sem histórico de movimentação para a seleção atual.")
     else:
-        st.plotly_chart(line_evolucao(evol), width="stretch")
+        st.plotly_chart(line_evolucao(evol), use_container_width=True)
 
     st.subheader("DY estimado")
     if dy.empty:
         st.info("Sem dados de DY para o filtro atual.")
     else:
-        st.plotly_chart(bar_dy(dy), width="stretch")
+        st.plotly_chart(bar_dy(dy), use_container_width=True)
 
     if not mov_filtered.empty:
         st.subheader("Detalhes da movimentação")
-        st.dataframe(mov_filtered, width="stretch")
+        st.dataframe(mov_filtered, use_container_width=True)
 
     if not pos_filtered.empty:
         st.subheader("Posição atual")
-        st.dataframe(pos_filtered, width="stretch")
+        st.dataframe(pos_filtered, use_container_width=True)
 
 
 if __name__ == "__main__":

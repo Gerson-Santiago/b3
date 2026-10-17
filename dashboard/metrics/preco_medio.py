@@ -45,35 +45,48 @@ def compute_preco_medio(df):
             if is_provento(movimentacao):
                 continue
 
+            if movimentacao in {"atualizacao", "atualização", "dividendo - cancelado"}:
+                continue
+
             if abs(qtd_liquida) < 1e-9:
                 continue
 
             if is_ajuste_quantidade(movimentacao):
-                tokens = [
-                    "desdobro",
-                    "split",
-                    "grupamento",
-                    "bonificacao",
-                    "amortizacao",
-                ]
-                frac_tokens = ["fracao", "fração", "leilao", "leilão"]
                 texto = movimentacao.lower()
 
-                if any(token in texto for token in tokens):
-                    quantidade_atual = abs(qtd_liquida) if abs(qtd_liquida) > 0 else quantidade_atual
+                if "grupamento" in texto or "agrupamento" in texto:
+                    if abs(qtd_liquida) > 0:
+                        quantidade_atual = abs(qtd_liquida)
                     continue
 
-                if any(token in texto for token in frac_tokens):
+                if "desdobro" in texto or "split" in texto:
+                    quantidade_atual += abs(qtd_liquida)
+                    continue
+
+                if any(token in texto for token in ["leilao", "leilão", "facao"]):
+                    # Leilão de fração é venda da fração e não altera custo nem quantidade do ativo.
+                    continue
+
+                if any(token in texto for token in ["fracao", "fração", "facao"]):
                     if qtd_liquida < 0:
-                        quantidade_atual += qtd_liquida
-                        if quantidade_atual < 0:
+                        quantidade_removida = abs(qtd_liquida)
+                        if quantidade_atual <= 0:
                             quantidade_atual = 0.0
+                            custo_total = 0.0
+                            continue
+
+                        if quantidade_removida >= quantidade_atual:
+                            quantidade_atual = 0.0
+                            custo_total = 0.0
+                            continue
+
+                        custo_unitario = custo_total / quantidade_atual if quantidade_atual else 0.0
+                        custo_total -= quantidade_removida * custo_unitario
+                        quantidade_atual -= quantidade_removida
                         continue
 
-                    if qtd_liquida > 0 and pd.notna(valor_liquido):
-                        quantidade_atual += qtd_liquida
-                        custo_total += abs(valor_liquido)
-                        continue
+                    # Fração recebida/creditada não mexe no custo médio do ativo em si.
+                    continue
 
                 quantidade_atual += qtd_liquida
                 if quantidade_atual < 0:

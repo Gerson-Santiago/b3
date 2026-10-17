@@ -32,7 +32,7 @@ def classificar_movimentacao(texto: object) -> TipoMovimentacao:
     if not valor:
         return TipoMovimentacao.DESCONHECIDA
 
-    if any(padrao in valor for padrao in ["dividendo", "jcp", "juros", "rendimento", "provento"]):
+    if any(padrao in valor for padrao in ["dividendo", "jcp", "juros", "rendimento", "provento", "atualizacao", "atualização"]):
         return TipoMovimentacao.PROVENTO
 
     if any(padrao in valor for padrao in ["desdobro", "split"]):
