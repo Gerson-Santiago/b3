@@ -36,6 +36,9 @@ COLOR_PATRIMONIO_MARKER = "#1d4ed8"
 
 # Proventos (barras)
 COLOR_PROVENTOS = "#10b981"
+COLOR_DIVIDENDO = "#10b981"  # verde esmeralda
+COLOR_JCP = "#f59e0b"        # âmbar
+COLOR_FII = "#06b6d4"        # ciano
 
 # Dividend Yield (barras)
 COLOR_DY = "#0284c7"

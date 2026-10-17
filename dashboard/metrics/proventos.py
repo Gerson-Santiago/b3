@@ -1,12 +1,12 @@
 import pandas as pd
 
 from dashboard.models.eventos import efeito_movimentacao
-from dashboard.models.movimentacao import is_credito
+from dashboard.models.movimentacao import classificar_tipo_provento, is_credito
 
 
-def compute_proventos(df):
+def compute_proventos(df: pd.DataFrame | None) -> pd.DataFrame:
     if df is None or df.empty:
-        return pd.DataFrame(columns=["mes", "valor_liquido"])
+        return pd.DataFrame(columns=["mes", "tipo_provento", "valor_liquido"])
 
     proventos = df.loc[
         df.apply(
@@ -17,9 +17,10 @@ def compute_proventos(df):
     ].copy()
 
     if proventos.empty:
-        return pd.DataFrame(columns=["mes", "valor_liquido"])
+        return pd.DataFrame(columns=["mes", "tipo_provento", "valor_liquido"])
 
-    resumo = proventos.groupby("mes", as_index=False)["valor_liquido"].sum()
+    proventos["tipo_provento"] = proventos["movimentacao"].map(classificar_tipo_provento)
+    resumo = proventos.groupby(["mes", "tipo_provento"], as_index=False)["valor_liquido"].sum()
     resumo["mes"] = pd.to_datetime(resumo["mes"].astype(str) + "-01")
     resumo["valor_liquido"] = resumo["valor_liquido"].clip(lower=0)
     return resumo

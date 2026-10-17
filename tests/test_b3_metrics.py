@@ -165,6 +165,23 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
         )
         self.assertEqual(compute_proventos(df)["valor_liquido"].sum(), 220)
 
+    def test_compute_proventos_classifica_tipos_corretamente(self):
+        df = pd.DataFrame(
+            {
+                "mes": ["2026-10", "2026-10", "2026-10"],
+                "entrada_saida": ["credito", "credito", "credito"],
+                "movimentacao": ["dividendo", "juros sobre capital proprio", "rendimento"],
+                "valor_liquido": [100.0, 50.0, 30.0],
+            }
+        )
+        res = compute_proventos(df)
+        self.assertIn("tipo_provento", res.columns)
+        self.assertEqual(len(res), 3)
+        tipos = dict(zip(res["tipo_provento"], res["valor_liquido"]))
+        self.assertEqual(tipos["Dividendo"], 100.0)
+        self.assertEqual(tipos["JCP"], 50.0)
+        self.assertEqual(tipos["Rendimento FII"], 30.0)
+
     def test_compute_dy_uses_position_and_received_proceeds(self):
         df = pd.DataFrame(
             {

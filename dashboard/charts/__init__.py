@@ -7,6 +7,11 @@ from .lines import (
 )
 from .pie import pie_carteira, pie_carteira_por_categoria, pie_categoria
 from .treemap import sunburst_carteira, treemap_carteira
+from .defaults import (
+    COLOR_DIVIDENDO,
+    COLOR_FII,
+    COLOR_JCP,
+)
 from . import defaults  # noqa: F401 – permite `from charts import defaults`
 
 __all__ = [
@@ -23,4 +28,7 @@ __all__ = [
     "line_evolucao",
     "line_comparativo_patrimonio_e_aportes",
     "line_rentabilidade_acumulada",
+    "COLOR_DIVIDENDO",
+    "COLOR_JCP",
+    "COLOR_FII",
 ]

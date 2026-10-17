@@ -6,7 +6,10 @@ import plotly.graph_objects as go
 
 from .base import aplicar_layout_padrao
 from .defaults import (
+    COLOR_DIVIDENDO,
     COLOR_DY,
+    COLOR_FII,
+    COLOR_JCP,
     COLOR_LUCRO,
     COLOR_PATRIMONIO,
     COLOR_PREJUIZO,
@@ -18,6 +21,7 @@ from .defaults import (
 def bar_proventos(
     proventos: pd.DataFrame | None,
     mostrar_acumulado: bool = True,
+    segmentar_por_tipo: bool = False,
 ) -> go.Figure:
     if proventos is None or proventos.empty:
         fig = go.Figure()
@@ -26,37 +30,85 @@ def bar_proventos(
 
     df = proventos.copy()
     if "valor_liquido" in df.columns:
-        df["valor_liquido"] = df["valor_liquido"].fillna(0.0)
+        df["valor_liquido"] = pd.to_numeric(df["valor_liquido"], errors="coerce").fillna(0.0)
 
-    # Ordenação cronológica e cálculo do acumulado por ano
+    # Identificar se há coluna de tipo para segmentação
+    tipo_col = next((c for c in ["tipo_provento", "tipo", "movimentacao"] if c in df.columns), None)
+    usar_segmentacao = segmentar_por_tipo and tipo_col is not None
+
+    # Agregação mensal total para ordenação e cálculo da curva de acumulado anual
     if "mes" in df.columns:
-        mes_dt = pd.to_datetime(df["mes"])
-        df["_dt"] = mes_dt
-        df = df.sort_values("_dt").reset_index(drop=True)
-        ano = df["_dt"].dt.year
-        df["acumulado_ano"] = df.groupby(ano)["valor_liquido"].cumsum()
+        df_mensal = df.groupby("mes", as_index=False)["valor_liquido"].sum()
+        df_mensal["_dt"] = pd.to_datetime(df_mensal["mes"])
+        df_mensal = df_mensal.sort_values("_dt").reset_index(drop=True)
+        ano = df_mensal["_dt"].dt.year
+        df_mensal["acumulado_ano"] = df_mensal.groupby(ano)["valor_liquido"].cumsum()
     else:
-        df["acumulado_ano"] = df["valor_liquido"].cumsum() if "valor_liquido" in df.columns else 0.0
+        df_mensal = pd.DataFrame(columns=["mes", "valor_liquido", "acumulado_ano"])
 
-    fig = px.bar(
-        df,
-        x="mes",
-        y="valor_liquido",
-        title="Histórico Mensal de Proventos Recebidos",
-        labels={"mes": "Mês de Pagamento", "valor_liquido": "Proventos Líquidos (R$)"},
-        color_discrete_sequence=[COLOR_PROVENTOS],
-    )
-    fig.update_traces(
-        name="Mensal",
-        hovertemplate="<b>Mês:</b> %{x}<br><b>Recebido:</b> R$ %{y:,.2f}<extra></extra>",
-    )
+    if usar_segmentacao:
+        fig = go.Figure()
+        df_bar = df.groupby(["mes", tipo_col], as_index=False)["valor_liquido"].sum()
+        df_bar["_dt"] = pd.to_datetime(df_bar["mes"])
+        df_bar = df_bar.sort_values("_dt").reset_index(drop=True)
 
-    if mostrar_acumulado:
-        fig.data[0].showlegend = True
+        meses_ordenados = df_mensal["mes"].tolist()
+
+        def obter_cor_tipo(tipo_nome: str) -> str:
+            t = str(tipo_nome).strip().lower()
+            if "dividendo" in t:
+                return COLOR_DIVIDENDO
+            if "jcp" in t or "juros" in t:
+                return COLOR_JCP
+            if "fii" in t or "rendimento" in t:
+                return COLOR_FII
+            return COLOR_PROVENTOS
+
+        tipos_presentes = list(df_bar[tipo_col].unique())
+        ordem_preferencial = ["Dividendo", "Dividendos", "JCP", "Rendimento FII", "FII", "Rendimento", "Outros"]
+        tipos_ordenados = [t for t in ordem_preferencial if t in tipos_presentes] + [
+            t for t in tipos_presentes if t not in ordem_preferencial
+        ]
+
+        for t in tipos_ordenados:
+            sub = df_bar[df_bar[tipo_col] == t]
+            fig.add_trace(
+                go.Bar(
+                    x=sub["mes"],
+                    y=sub["valor_liquido"],
+                    name=str(t),
+                    marker_color=obter_cor_tipo(str(t)),
+                    hovertemplate=f"<b>Mês:</b> %{{x}}<br><b>{t}:</b> R$ %{{y:,.2f}}<extra></extra>",
+                )
+            )
+
+        fig.update_layout(
+            barmode="stack",
+            title=dict(text="Histórico Mensal de Proventos Recebidos por Tipo"),
+            xaxis=dict(title="Mês de Pagamento", categoryorder="array", categoryarray=meses_ordenados),
+            yaxis=dict(title="Proventos Líquidos (R$)"),
+        )
+    else:
+        fig = px.bar(
+            df_mensal,
+            x="mes",
+            y="valor_liquido",
+            title="Histórico Mensal de Proventos Recebidos",
+            labels={"mes": "Mês de Pagamento", "valor_liquido": "Proventos Líquidos (R$)"},
+            color_discrete_sequence=[COLOR_PROVENTOS],
+        )
+        fig.update_traces(
+            name="Mensal",
+            hovertemplate="<b>Mês:</b> %{x}<br><b>Recebido:</b> R$ %{y:,.2f}<extra></extra>",
+        )
+
+    if mostrar_acumulado and not df_mensal.empty:
+        if len(fig.data) > 0:
+            fig.data[0].showlegend = True
         fig.add_trace(
             go.Scatter(
-                x=df["mes"],
-                y=df["acumulado_ano"],
+                x=df_mensal["mes"],
+                y=df_mensal["acumulado_ano"],
                 mode="lines+markers",
                 name="Acumulado no Ano",
                 line=dict(color=COLOR_PATRIMONIO, width=2.5),
@@ -78,6 +130,14 @@ def bar_proventos(
             altura=HEIGHT_BAR,
             legenda_horizontal=True,
             margens=dict(l=30, r=50, t=60, b=40),
+        )
+
+    if usar_segmentacao:
+        return aplicar_layout_padrao(
+            fig,
+            altura=HEIGHT_BAR,
+            legenda_horizontal=True,
+            margens=dict(l=30, r=30, t=60, b=40),
         )
 
     return aplicar_layout_padrao(fig, altura=HEIGHT_BAR, legenda_horizontal=False)

@@ -7,6 +7,9 @@ import pytest
 
 from dashboard.charts.bars import bar_dy, bar_lucro_prejuizo, bar_proventos
 from dashboard.charts.defaults import (
+    COLOR_DIVIDENDO,
+    COLOR_FII,
+    COLOR_JCP,
     COLOR_LUCRO,
     COLOR_PATRIMONIO,
     COLOR_PREJUIZO,
@@ -123,6 +126,86 @@ def test_bar_proventos_vazio_com_mostrar_acumulado():
     fig = bar_proventos(empty_df, mostrar_acumulado=True)
     assert isinstance(fig, go.Figure)
     assert len(fig.data) == 0
+
+
+def test_bar_proventos_segmentar_por_tipo_traces_e_cores():
+    df_tipos = pd.DataFrame(
+        {
+            "mes": ["2024-01", "2024-01", "2024-01", "2024-02"],
+            "tipo_provento": ["Dividendo", "JCP", "Rendimento FII", "Dividendo"],
+            "valor_liquido": [100.0, 50.0, 30.0, 120.0],
+        }
+    )
+    fig = bar_proventos(df_tipos, segmentar_por_tipo=True, mostrar_acumulado=False)
+    assert len(fig.data) == 3
+    assert fig.layout.barmode == "stack"
+    trace_names = [t.name for t in fig.data]
+    assert "Dividendo" in trace_names
+    assert "JCP" in trace_names
+    assert "Rendimento FII" in trace_names
+
+    # Validar cores atribuídas por tipo
+    cor_por_tipo = {t.name: t.marker.color for t in fig.data}
+    assert cor_por_tipo["Dividendo"] == COLOR_DIVIDENDO
+    assert cor_por_tipo["JCP"] == COLOR_JCP
+    assert cor_por_tipo["Rendimento FII"] == COLOR_FII
+
+
+def test_bar_proventos_segmentar_por_tipo_com_acumulado():
+    df_tipos = pd.DataFrame(
+        {
+            "mes": ["2024-01", "2024-01", "2024-02"],
+            "tipo_provento": ["Dividendo", "JCP", "Dividendo"],
+            "valor_liquido": [100.0, 50.0, 200.0],
+        }
+    )
+    fig = bar_proventos(df_tipos, segmentar_por_tipo=True, mostrar_acumulado=True)
+    # 2 traces de barra + 1 trace de acumulado anual no eixo Y2
+    assert len(fig.data) == 3
+    bar_traces = [t for t in fig.data if t.type == "bar"]
+    scatter_traces = [t for t in fig.data if t.type == "scatter"]
+    assert len(bar_traces) == 2
+    assert len(scatter_traces) == 1
+    # Curva acumulada mensal total: 100+50 = 150 em jan, 150+200 = 350 em fev
+    assert list(scatter_traces[0].y) == [150.0, 350.0]
+    assert scatter_traces[0].yaxis == "y2"
+
+
+def test_bar_proventos_segmentar_por_tipo_fallback_sem_coluna_tipo(proventos_sample):
+    # proventos_sample só tem ["mes", "valor_liquido"]
+    fig = bar_proventos(proventos_sample, segmentar_por_tipo=True, mostrar_acumulado=False)
+    assert len(fig.data) == 1
+    assert fig.data[0].type == "bar"
+
+
+def test_bar_proventos_segmentar_por_tipo_quando_false_unifica_barras():
+    df_tipos = pd.DataFrame(
+        {
+            "mes": ["2024-01", "2024-01"],
+            "tipo_provento": ["Dividendo", "JCP"],
+            "valor_liquido": [100.0, 50.0],
+        }
+    )
+    fig = bar_proventos(df_tipos, segmentar_por_tipo=False, mostrar_acumulado=False)
+    assert len(fig.data) == 1
+    assert fig.data[0].type == "bar"
+    assert list(fig.data[0].y) == [150.0]
+
+
+def test_bar_proventos_converte_valor_liquido_nao_numerico_nao_lanca_excecao():
+    """Strings não numéricas são convertidas para 0.0 via pd.to_numeric(errors='coerce').
+    A normalização de strings pt-BR (ex: '150,00') é responsabilidade do loader, não do chart.
+    """
+    df_str = pd.DataFrame(
+        {
+            "mes": ["2024-01", "2024-02"],
+            "valor_liquido": ["abc", None],
+        }
+    )
+    fig = bar_proventos(df_str, mostrar_acumulado=False)
+    assert isinstance(fig, go.Figure)
+    assert len(fig.data) == 1
+    assert list(fig.data[0].y) == [0.0, 0.0]
 
 
 # ---------------------------------------------------------------------------

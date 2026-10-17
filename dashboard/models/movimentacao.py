@@ -75,6 +75,18 @@ def is_provento(movimentacao: object) -> bool:
     return classificar_movimentacao(movimentacao) == TipoMovimentacao.PROVENTO
 
 
+def classificar_tipo_provento(texto: object) -> str:
+    """Classifica a movimentação em 'Dividendo', 'JCP', 'Rendimento FII' ou 'Outros'."""
+    val = normalizar_texto(texto)
+    if "juros" in val or "jcp" in val:
+        return "JCP"
+    if "dividendo" in val:
+        return "Dividendo"
+    if "rendimento" in val or "fii" in val:
+        return "Rendimento FII"
+    return "Outros"
+
+
 def is_ajuste_quantidade(movimentacao: object) -> bool:
     tipo = classificar_movimentacao(movimentacao)
     return tipo in {

@@ -22,7 +22,7 @@
 | **Fase 2** | `tests/` | Proteção: Cobertura Unitária da Camada de Gráficos | ✅ Concluído |
 | **Fase 3** | `charts/` | SSoT & DRY: Consolidação da Camada de Visualização | ✅ Concluído |
 | **Fase 4** | `charts/` + `views/` | Novos Gráficos: P&L e Rentabilidade Comparativa | ✅ Concluído |
-| **Fase 5** | `metrics/` + `views/` | Calendário de Proventos e Fluxo de Caixa | ⏳ Backlog |
+| **Fase 5** | `metrics/` + `views/` | Calendário de Proventos e Fluxo de Caixa (5.1–5.2 ✅) | 🟡 Em Progresso |
 | **Fase 6** | `loaders/` + `metrics/` | Loader de Proventos Recebidos & Reconciliação | ⏳ Backlog |
 | **Fase 7** | `views/` + `charts/` | Posição Interativa & Alocação Estendida (Setor/Corretora) | ⏳ Backlog |
 | **Fase 8** | `metrics/` + `views/` | Vendas, Lucro Realizado e Controle Fiscal (IR) | ⏳ Backlog |
@@ -81,14 +81,14 @@
 
 ---
 
-## Fase 5 — Calendário de Proventos e Fluxo de Caixa ⏳
+## Fase 5 — Calendário de Proventos e Fluxo de Caixa 🟡 (5.1–5.2 ✅)
 
 > **Princípio:** Fechar a última lacuna das 4 perguntas — a tendência, sazonalidade e fluxo de proventos recebidos.
 
 | # | Arquivo de Issue | Descrição | Status |
 | :--- | :--- | :--- | :---: |
 | 5.1 | [issue_051_proventos_acumulado.md](./issue_051_proventos_acumulado.md) | Adicionar linha de acumulado anual ao `bar_proventos()` | ✅ Concluído |
-| 5.2 | [issue_052_proventos_tipo.md](./issue_052_proventos_tipo.md) | Segmentar `bar_proventos()` por tipo: Dividendos vs JCP vs FII | ⏳ Backlog |
+| 5.2 | [issue_052_proventos_tipo.md](./issue_052_proventos_tipo.md) | Segmentar `bar_proventos()` por tipo: Dividendos vs JCP vs FII | ✅ Concluído |
 | 5.3 | [issue_053_proventos_calendario.md](./issue_053_proventos_calendario.md) | Calendário de proventos por data de pagamento | ⏳ Backlog |
 | 5.4 | [issue_054_proventos_ranking.md](./issue_054_proventos_ranking.md) | Ranking dos maiores pagadores (top 10 por DY e por R$) | ⏳ Backlog |
 
