@@ -30,6 +30,7 @@ from .movimentacao import (
     is_provento,
 )
 from .qualidade import Aviso, RelatorioQualidade, mensagens
+from .resumo import ResumoCarteira, ResumoMacro, calcular_resumo_carteira
 
 __all__ = [
     "Ativo",
@@ -60,4 +61,7 @@ __all__ = [
     "normalizar_chave_evento",
     "listar_movimentacoes_pendentes",
     "tem_efeito_pendente",
+    "ResumoCarteira",
+    "ResumoMacro",
+    "calcular_resumo_carteira",
 ]

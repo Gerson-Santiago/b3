@@ -1,5 +1,5 @@
 from .base import aplicar_layout_padrao
-from .bars import bar_dy, bar_proventos
+from .bars import bar_dy, bar_lucro_prejuizo, bar_proventos
 from .lines import line_comparativo_patrimonio_e_aportes, line_evolucao
 from .pie import pie_carteira, pie_carteira_por_categoria, pie_categoria
 from .treemap import sunburst_carteira, treemap_carteira
@@ -15,6 +15,7 @@ __all__ = [
     "sunburst_carteira",
     "bar_proventos",
     "bar_dy",
+    "bar_lucro_prejuizo",
     "line_evolucao",
     "line_comparativo_patrimonio_e_aportes",
 ]

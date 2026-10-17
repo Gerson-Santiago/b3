@@ -47,28 +47,36 @@ def _render_card(row: pd.Series, rotulo_valor: str = "Valor Atual (snapshot)") -
     valor_abs = float(row.get("valor_abs", 0))
     preco_medio = float(row.get("preco_medio", 0))
     custo_total = float(row.get("custo_total", 0))
+    pl = float(row.get("pl", 0))
     variacao_pct = float(row.get("variacao_pct", 0))
+    peso_pct = float(row.get("peso_pct", 0))
 
     if custo_total > 0:
         if variacao_pct > 0:
-            delta_val = f"+{variacao_pct:.2f}%"
+            delta_val = f"+R$ {pl:,.2f} (+{variacao_pct:.2f}%)"
             delta_color = "normal"
         elif variacao_pct < 0:
-            delta_val = f"{variacao_pct:.2f}%"
+            delta_val = f"-R$ {abs(pl):,.2f} ({variacao_pct:.2f}%)"
             delta_color = "normal"
         else:
-            delta_val = "0.00%"
+            delta_val = "R$ 0,00 (0.00%)"
             delta_color = "off"
     else:
         delta_val = "0.00%"
         delta_color = "off"
 
     with st.container(border=True):
-        # Cabeçalho: ticker + badge categoria
+        badge_peso = (
+            f"&nbsp;<span style='font-size:0.75rem;background:#dbeafe;"
+            f"border-radius:4px;padding:1px 6px;color:#1e40af;font-weight:600'>{peso_pct:.1f}% da carteira</span>"
+            if peso_pct > 0
+            else ""
+        )
         st.markdown(
             f"**{produto}** &nbsp; "
             f"<span style='font-size:0.75rem;background:#e2e8f0;"
-            f"border-radius:4px;padding:1px 6px;color:#475569'>{categoria}</span>",
+            f"border-radius:4px;padding:1px 6px;color:#475569'>{categoria}</span>"
+            f"{badge_peso}",
             unsafe_allow_html=True,
         )
         # Métricas em 2 colunas

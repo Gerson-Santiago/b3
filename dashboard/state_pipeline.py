@@ -24,6 +24,7 @@ _COLUNAS_CARDS_VAZIA = [
     "custo_total",
     "pl",
     "variacao_pct",
+    "peso_pct",
 ]
 
 
@@ -112,6 +113,11 @@ def enriquecer_pos_cards(pos: pd.DataFrame, pm_df: pd.DataFrame) -> pd.DataFrame
         lambda r: round((r["pl"] / r["custo_total"]) * 100, 2) if r["custo_total"] else 0.0,
         axis=1,
     )
+    total_patrimonio = float(cards["valor_abs"].sum())
+    if total_patrimonio > 0:
+        cards["peso_pct"] = (cards["valor_abs"] / total_patrimonio * 100).round(2)
+    else:
+        cards["peso_pct"] = 0.0
     return cards.sort_values("valor_abs", ascending=False).reset_index(drop=True)
 
 

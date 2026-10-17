@@ -5,8 +5,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from dashboard.charts.bars import bar_dy, bar_proventos
-from dashboard.charts.defaults import HEIGHT_BAR
+from dashboard.charts.bars import bar_dy, bar_lucro_prejuizo, bar_proventos
+from dashboard.charts.defaults import COLOR_LUCRO, COLOR_PREJUIZO, HEIGHT_BAR
 
 
 # ---------------------------------------------------------------------------
@@ -112,3 +112,63 @@ def test_bar_dy_fallback_coluna_dy_pct_nao_lanca_excecao(dy_fallback_sample):
 def test_bar_dy_fallback_altura_correta(dy_fallback_sample):
     fig = bar_dy(dy_fallback_sample)
     assert fig.layout.height == HEIGHT_BAR
+
+
+# ---------------------------------------------------------------------------
+# bar_lucro_prejuizo (Issue 4.1)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def pos_cards_pl_sample():
+    return pd.DataFrame(
+        {
+            "produto": ["PETR4", "VALE3", "GOGL35", "SEM_CUSTO"],
+            "custo_total": [500.0, 1000.0, 300.0, 0.0],
+            "valor_abs": [650.0, 800.0, 360.0, 100.0],
+            "pl": [150.0, -200.0, 60.0, 100.0],
+            "variacao_pct": [30.0, -20.0, 20.0, 0.0],
+        }
+    )
+
+
+def test_bar_lucro_prejuizo_retorna_figura_valida(pos_cards_pl_sample):
+    fig = bar_lucro_prejuizo(pos_cards_pl_sample)
+    assert isinstance(fig, go.Figure)
+    assert len(fig.data) > 0
+    # Orientação horizontal: produto no eixo Y e P&L no eixo X
+    assert fig.data[0].orientation == "h"
+    assert fig.layout.height == HEIGHT_BAR
+
+
+def test_bar_lucro_prejuizo_filtra_ativos_sem_custo(pos_cards_pl_sample):
+    fig = bar_lucro_prejuizo(pos_cards_pl_sample)
+    # Todos os produtos plotados em todas as traces
+    produtos_plotados = []
+    for trace in fig.data:
+        produtos_plotados.extend(list(trace.y))
+    assert "SEM_CUSTO" not in produtos_plotados
+    assert "PETR4" in produtos_plotados
+    assert "VALE3" in produtos_plotados
+
+
+def test_bar_lucro_prejuizo_vazio_nao_lanca_excecao():
+    empty_df = pd.DataFrame(columns=["produto", "custo_total", "valor_abs", "pl", "variacao_pct"])
+    fig = bar_lucro_prejuizo(empty_df)
+    assert isinstance(fig, go.Figure)
+    assert fig.layout.height == HEIGHT_BAR
+
+
+def test_bar_lucro_prejuizo_none_nao_lanca_excecao():
+    fig = bar_lucro_prejuizo(None)
+    assert isinstance(fig, go.Figure)
+    assert fig.layout.height == HEIGHT_BAR
+
+
+def test_bar_lucro_prejuizo_hover_contem_pl_e_variacao(pos_cards_pl_sample):
+    fig = bar_lucro_prejuizo(pos_cards_pl_sample)
+    for trace in fig.data:
+        hover = trace.hovertemplate
+        assert hover is not None
+        assert "%" in hover
+        assert "R$" in hover
+

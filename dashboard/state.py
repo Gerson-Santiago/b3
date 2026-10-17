@@ -14,6 +14,7 @@ import pandas as pd
 from dashboard.metrics.dy import compute_dy_metrics
 from dashboard.metrics.proventos import compute_proventos
 from dashboard.models.qualidade import RelatorioQualidade
+from dashboard.models.resumo import ResumoCarteira, calcular_resumo_carteira
 from dashboard.state_pipeline import enriquecer_pos_cards, montar_derivados
 
 # Reexportado para testes que importam o helper puro.
@@ -38,6 +39,7 @@ class DashboardState:
     evol_bolsa: dict
     evol_tesouro: dict
     dy_metrics: pd.DataFrame
+    resumo: ResumoCarteira = field(default_factory=ResumoCarteira)
     qualidade: RelatorioQualidade = field(default_factory=RelatorioQualidade)
 
     @classmethod
@@ -63,11 +65,14 @@ class DashboardState:
             produtos_selecionados=produtos_selecionados,
             instituicoes_selecionadas=instituicoes_selecionadas,
         )
+        proventos = compute_proventos(mov_filtered)
+        resumo = calcular_resumo_carteira(derivados["pos_cards"], proventos)
         return cls(
             **derivados,
             mov_filtered=mov_filtered,
             pos_filtered=pos_filtered,
-            proventos=compute_proventos(mov_filtered),
+            proventos=proventos,
             dy_metrics=compute_dy_metrics(mov_filtered, pos_df, data_referencia=end_date),
+            resumo=resumo,
             qualidade=qualidade if qualidade is not None else RelatorioQualidade(),
         )

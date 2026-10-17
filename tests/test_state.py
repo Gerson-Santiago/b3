@@ -247,3 +247,82 @@ class TestR10PrecoMedioQuantidadeFiltroData:
         assert xyz["preco_medio"] == pytest.approx(10.0)
 
 
+class TestResumoCarteira:
+    def test_resumo_calcula_totais_e_subtotais_corretamente(self, pos_df):
+        mov = pd.DataFrame(
+            {
+                "data": pd.to_datetime(["2024-01-01", "2024-06-01", "2024-01-10"]),
+                "mes": ["2024-01", "2024-06", "2024-01"],
+                "produto": ["PETR4 - PETROBRAS", "PETR4 - PETROBRAS", "Tesouro Selic 2029"],
+                "movimentacao": ["Compra", "Dividendo", "Compra"],
+                "entrada_saida": ["Crédito", "Crédito", "Crédito"],
+                "quantidade": [10.0, 0.0, 1.0],
+                "qtd_liquida": [10.0, 0.0, 1.0],
+                "valor_liquido": [500.0, 50.0, 1000.0],
+                "instituicao": ["XP", "XP", "XP"],
+            }
+        )
+        state = DashboardState.build(
+            pos_df=pos_df,
+            mov_df=mov,
+            mov_filtered=mov,
+            pos_filtered=pos_df,
+            end_date=date(2024, 12, 31),
+        )
+        assert hasattr(state, "resumo")
+        resumo = state.resumo
+
+        # pos_df tem:
+        # PETR4 (AÇÕES): valor_liquido 500.0, mov tem compra de 500.0 (custo 500.0)
+        # GOGL35 (BDR): valor_liquido 300.0, sem mov (custo 0.0)
+        # Tesouro (TESOURO): valor_liquido 1000.0, mov tem compra de 1000.0 (custo 1000.0)
+        # Total patrimonio = 1800.0
+        assert resumo.patrimonio_total == pytest.approx(1800.0)
+        assert resumo.custo_total == pytest.approx(1500.0)
+        assert resumo.pl_total == pytest.approx(300.0)
+        # pl_pct = 300 / 1500 * 100 = 20.0%
+        assert resumo.pl_pct == pytest.approx(20.0)
+        # proventos: mov tem 50.0 de proventos (Dividendo PETR4)
+        assert resumo.proventos_total == pytest.approx(50.0)
+
+        # Macro Bolsa (AÇÕES + BDR):
+        # patrimonio = 500 + 300 = 800.0
+        # custo = 500.0
+        # pl = 300.0
+        assert resumo.bolsa.patrimonio == pytest.approx(800.0)
+        assert resumo.bolsa.custo == pytest.approx(500.0)
+        assert resumo.bolsa.pl == pytest.approx(300.0)
+        # peso_pct = 800 / 1800 * 100 = 44.44%
+        assert resumo.bolsa.peso_pct == pytest.approx(44.44, abs=0.01)
+
+        # Macro Tesouro (TESOURO):
+        # patrimonio = 1000.0, custo = 1000.0, pl = 0.0
+        assert resumo.tesouro.patrimonio == pytest.approx(1000.0)
+        assert resumo.tesouro.custo == pytest.approx(1000.0)
+        assert resumo.tesouro.pl == pytest.approx(0.0)
+        # peso_pct = 1000 / 1800 * 100 = 55.56%
+        assert resumo.tesouro.peso_pct == pytest.approx(55.56, abs=0.01)
+
+    def test_resumo_quando_carteira_vazia(self):
+        empty_pos = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs", "categoria"])
+        empty_mov = pd.DataFrame(columns=["data", "mes", "produto", "movimentacao", "entrada_saida", "quantidade", "qtd_liquida", "valor_liquido"])
+        state = DashboardState.build(
+            pos_df=empty_pos,
+            mov_df=empty_mov,
+            mov_filtered=empty_mov,
+            pos_filtered=empty_pos,
+            end_date=date(2024, 12, 31),
+        )
+        assert hasattr(state, "resumo")
+        resumo = state.resumo
+        assert resumo.patrimonio_total == 0.0
+        assert resumo.custo_total == 0.0
+        assert resumo.pl_total == 0.0
+        assert resumo.pl_pct == 0.0
+        assert resumo.proventos_total == 0.0
+        assert resumo.bolsa.patrimonio == 0.0
+        assert resumo.bolsa.peso_pct == 0.0
+        assert resumo.tesouro.patrimonio == 0.0
+        assert resumo.tesouro.peso_pct == 0.0
+
+

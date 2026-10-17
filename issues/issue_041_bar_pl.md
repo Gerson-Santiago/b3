@@ -1,7 +1,7 @@
 # Issue 4.1 — Criar `bar_lucro_prejuizo()` e Integrar na View `carteira.py`
 
 **Fase:** 4 — Novos Gráficos
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 4–6 horas
 **Dependência:** Fase 2 ✅ + Fase 3 ✅
 
@@ -15,13 +15,13 @@ Este é o **maior gap atual do dashboard** em relação às 4 perguntas do inves
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Função `bar_lucro_prejuizo(pos_cards)` criada em `charts/bars.py`.
-- [ ] Gráfico de barras **horizontais** com `produto` no eixo Y e `pl` (R$) no eixo X.
-- [ ] Barras verdes para `pl > 0`, vermelhas para `pl < 0`.
-- [ ] Hover mostra: `Ativo`, `P&L (R$)`, `Variação (%)`.
-- [ ] Integrado na view `views/carteira.py` como uma nova seção `"Resultado por Ativo (P&L)"`.
-- [ ] Teste unitário em `tests/test_charts_bars.py` cobre o novo gráfico (cenário feliz + DataFrame vazio).
-- [ ] `pytest tests/` passa com `0 erros`.
+- [x] Função `bar_lucro_prejuizo(pos_cards)` criada em `charts/bars.py`.
+- [x] Gráfico de barras **horizontais** com `produto` no eixo Y e `pl` (R$) no eixo X.
+- [x] Barras verdes para `pl > 0`, vermelhas para `pl < 0`.
+- [x] Hover mostra: `Ativo`, `P&L (R$)`, `Variação (%)`.
+- [x] Integrado na view `views/carteira.py` como uma nova seção `"Resultado por Ativo (P&L)"`.
+- [x] Teste unitário em `tests/test_charts_bars.py` cobre o novo gráfico (cenário feliz + DataFrame vazio).
+- [x] `pytest tests/` passa com `0 erros`.
 
 ---
 
@@ -29,25 +29,25 @@ Este é o **maior gap atual do dashboard** em relação às 4 perguntas do inves
 
 ### 1. Função em `charts/bars.py`
 
-- [ ] Criar `bar_lucro_prejuizo(pos_cards: pd.DataFrame) -> go.Figure`.
-- [ ] Usar `px.bar(..., orientation="h")` com `pos_cards` filtrado para `custo_total > 0` (ativos com custo conhecido).
-- [ ] Definir `color_discrete_map` ou `color` baseado no sinal de `pl`.
-- [ ] Adicionar constante de cor em `charts/defaults.py`: `COLOR_LUCRO = "#10b981"` e `COLOR_PREJUIZO = "#ef4444"`.
-- [ ] Chamar `aplicar_layout_padrao(fig, altura=HEIGHT_BAR, legenda_horizontal=False)`.
+- [x] Criar `bar_lucro_prejuizo(pos_cards: pd.DataFrame) -> go.Figure`.
+- [x] Usar `px.bar(..., orientation="h")` com `pos_cards` filtrado para `custo_total > 0` (ativos com custo conhecido).
+- [x] Definir `color_discrete_map` ou `color` baseado no sinal de `pl`.
+- [x] Adicionar constante de cor em `charts/defaults.py`: `COLOR_LUCRO = "#10b981"` e `COLOR_PREJUIZO = "#ef4444"`.
+- [x] Chamar `aplicar_layout_padrao(fig, altura=HEIGHT_BAR, legenda_horizontal=False)`.
 
 ### 2. Integração em `views/carteira.py`
 
-- [ ] Importar `bar_lucro_prejuizo` de `dashboard.charts`.
-- [ ] Adicionar seção `"### Resultado por Ativo (P&L)"` entre o gráfico de alocação e a grade de cards.
-- [ ] Só renderizar se `state.pos_cards` tiver algum `custo_total > 0`.
+- [x] Importar `bar_lucro_prejuizo` de `dashboard.charts`.
+- [x] Adicionar seção `"### Resultado por Ativo (P&L)"` entre o gráfico de alocação e a grade de cards.
+- [x] Só renderizar se `state.pos_cards` tiver algum `custo_total > 0`.
 
 ### 3. Exportar no `charts/__init__.py`
 
-- [ ] Adicionar `bar_lucro_prejuizo` em `__all__`.
+- [x] Adicionar `bar_lucro_prejuizo` em `__all__`.
 
 ### 4. Teste unitário
 
-- [ ] Adicionar ao `tests/test_charts_bars.py` (Issue 2.1):
+- [x] Adicionar ao `tests/test_charts_bars.py` (Issue 2.1):
   - Cenário feliz: DataFrame com `produto`, `pl`, `variacao_pct`, `custo_total` → `go.Figure` válido.
   - DataFrame com todos `pl=0` / `custo_total=0` → não lança exceção.
 

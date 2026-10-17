@@ -179,10 +179,21 @@ def main():
     for msg in mensagens(state.qualidade):
         st.warning(msg)
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Movimentações Filtradas", f"{len(mov_filtered):,}" if not mov_filtered.empty else "0")
-    col2.metric("Fluxo Líquido Filtrado", f"R$ {mov_filtered['valor_liquido'].sum():,.2f}" if not mov_filtered.empty else "R$ 0,00")
-    col3.metric("Ativos em Custódia", f"{state.pos['produto'].nunique():,}" if not state.pos.empty else "0")
+    # -----------------------------------------------------------------------
+    # 01. Visão Geral — Cockpit de Decisão do Investidor
+    # -----------------------------------------------------------------------
+    res = state.resumo
+    delta_total = (
+        f"{res.pl_total:+,.2f} ({res.pl_pct:+.2f}%)"
+        if res.custo_total > 0
+        else None
+    )
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Patrimônio Atual", f"R$ {res.patrimonio_total:,.2f}")
+    c2.metric("Total Aportado (Custo)", f"R$ {res.custo_total:,.2f}")
+    c3.metric("Resultado Total (P&L)", f"R$ {res.pl_total:,.2f}", delta=delta_total)
+    c4.metric("Proventos Recebidos", f"R$ {res.proventos_total:,.2f}")
 
     tab_carteira, tab_proventos, tab_evolucao, tab_reconciliacao = st.tabs(
         ["Carteira & Alocação", "Proventos & Renda", "Evolução & Aportes", "Reconciliação B3"]

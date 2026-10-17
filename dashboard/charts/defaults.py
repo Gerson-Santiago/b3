@@ -40,6 +40,10 @@ COLOR_PROVENTOS = "#10b981"
 # Dividend Yield (barras)
 COLOR_DY = "#0284c7"
 
+# Lucro e Prejuízo (P&L)
+COLOR_LUCRO = "#10b981"     # verde esmeralda
+COLOR_PREJUIZO = "#ef4444"  # vermelho coral
+
 # Sequência de cores para gráficos de pizza (Plotly Express)
 PIE_COLOR_SEQUENCE = [
     "#2563eb",  # azul

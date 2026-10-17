@@ -1,10 +1,25 @@
+from __future__ import annotations
+
+import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 from .base import aplicar_layout_padrao
-from .defaults import COLOR_PROVENTOS, COLOR_DY, HEIGHT_BAR
+from .defaults import (
+    COLOR_DY,
+    COLOR_LUCRO,
+    COLOR_PREJUIZO,
+    COLOR_PROVENTOS,
+    HEIGHT_BAR,
+)
 
 
-def bar_proventos(proventos):
+def bar_proventos(proventos: pd.DataFrame | None) -> go.Figure:
+    if proventos is None or proventos.empty:
+        fig = go.Figure()
+        fig.update_layout(title=dict(text="Histórico Mensal de Proventos Recebidos"))
+        return aplicar_layout_padrao(fig, altura=HEIGHT_BAR)
+
     fig = px.bar(
         proventos,
         x="mes",
@@ -19,7 +34,12 @@ def bar_proventos(proventos):
     return aplicar_layout_padrao(fig, altura=HEIGHT_BAR, legenda_horizontal=False)
 
 
-def bar_dy(dy):
+def bar_dy(dy: pd.DataFrame | None) -> go.Figure:
+    if dy is None or dy.empty:
+        fig = go.Figure()
+        fig.update_layout(title=dict(text="Dividend Yield LTM por Ativo (%)"))
+        return aplicar_layout_padrao(fig, altura=HEIGHT_BAR)
+
     y_col = "dy_ltm_pct" if "dy_ltm_pct" in dy.columns else "dy_pct"
     fig = px.bar(
         dy,
@@ -33,3 +53,56 @@ def bar_dy(dy):
         hovertemplate="<b>Ativo:</b> %{x}<br><b>DY LTM:</b> %{y:.2f}%<extra></extra>"
     )
     return aplicar_layout_padrao(fig, altura=HEIGHT_BAR, legenda_horizontal=False)
+
+
+def bar_lucro_prejuizo(
+    pos_cards: pd.DataFrame | None,
+    *,
+    titulo: str = "Resultado por Ativo (P&L em R$)",
+) -> go.Figure:
+    """Gera gráfico de barras horizontais com Lucro e Prejuízo por ativo."""
+    if pos_cards is None or pos_cards.empty:
+        fig = go.Figure()
+        fig.update_layout(title=dict(text=titulo))
+        return aplicar_layout_padrao(fig, altura=HEIGHT_BAR)
+
+    df = pos_cards.copy()
+    if "custo_total" in df.columns:
+        df = df[df["custo_total"] > 0].copy()
+
+    if df.empty or "pl" not in df.columns or "produto" not in df.columns:
+        fig = go.Figure()
+        fig.update_layout(title=dict(text=titulo))
+        return aplicar_layout_padrao(fig, altura=HEIGHT_BAR)
+
+    # Ordena por pl crescente para que o maior lucro fique no topo do eixo Y
+    df = df.sort_values("pl", ascending=True).copy()
+
+    if "variacao_pct" not in df.columns:
+        df["variacao_pct"] = 0.0
+
+    df["status"] = df["pl"].apply(lambda v: "Lucro" if v >= 0 else "Prejuízo")
+
+    fig = px.bar(
+        df,
+        x="pl",
+        y="produto",
+        orientation="h",
+        color="status",
+        color_discrete_map={"Lucro": COLOR_LUCRO, "Prejuízo": COLOR_PREJUIZO},
+        title=titulo,
+        labels={"pl": "Lucro / Prejuízo (R$)", "produto": "Ativo", "status": "Resultado"},
+        custom_data=["variacao_pct"],
+    )
+
+    fig.update_traces(
+        hovertemplate=(
+            "<b>Ativo:</b> %{y}<br>"
+            "<b>P&L:</b> R$ %{x:,.2f}<br>"
+            "<b>Variação:</b> %{customdata[0]:+.2f}%"
+            "<extra></extra>"
+        )
+    )
+    fig.update_layout(showlegend=False)
+    return aplicar_layout_padrao(fig, altura=HEIGHT_BAR, legenda_horizontal=False)
+

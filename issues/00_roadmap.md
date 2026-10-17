@@ -65,7 +65,7 @@
 
 | # | Arquivo de Issue | Descrição | Status |
 | :--- | :--- | :--- | :---: |
-| 4.1 | [issue_041_bar_pl.md](./issue_041_bar_pl.md) | Criar `bar_lucro_prejuizo()` em `charts/bars.py` e integrar na view `carteira.py` | ⏳ Backlog |
+| 4.1 | [issue_041_bar_pl.md](./issue_041_bar_pl.md) | Criar `bar_lucro_prejuizo()` em `charts/bars.py` e integrar na view `carteira.py` | ✅ Concluído |
 | 4.2 | [issue_042_line_rentabilidade.md](./issue_042_line_rentabilidade.md) | Criar `line_rentabilidade_acumulada()` com linha de benchmark (CDI/IPCA) | ⏳ Backlog |
 
 ---
