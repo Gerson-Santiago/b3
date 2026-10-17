@@ -131,3 +131,17 @@ def test_cada_valor_distinto_de_movimentacao_das_fixtures_resolve_para_tipo_com_
             assert efeito.status == "definido", f"Sem efeito para {tipo} / {sentido} (mov={mov})"
 
 
+def test_zero_ocorrencias_de_in_texto_ou_in_valor_em_models():
+    import re
+    from pathlib import Path
+    models_dir = Path(__file__).resolve().parents[1] / "dashboard" / "models"
+    padrao = re.compile(r"in\s+(texto|valor)|\.contains\(")
+    ocorrencias = []
+    for py_file in models_dir.glob("*.py"):
+        for i, linha in enumerate(py_file.read_text(encoding="utf-8").splitlines(), start=1):
+            if padrao.search(linha):
+                ocorrencias.append(f"{py_file.name}:{i} -> {linha.strip()}")
+    assert not ocorrencias, f"Encontradas ocorrências proibidas em models:\n" + "\n".join(ocorrencias)
+
+
+

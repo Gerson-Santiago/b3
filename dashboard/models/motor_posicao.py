@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from dashboard.models.efeitos import EfeitoMovimentacao, efeito_movimentacao
-from dashboard.models.movimentacao import SINAL_ENTRADA_SAIDA
+from dashboard.models.efeitos import EfeitoMovimentacao, SemanticaQuantidade, efeito_movimentacao
+from dashboard.models.movimentacao import SINAL_ENTRADA_SAIDA, TipoMovimentacao
 from dashboard.models.posicao_acumulada import PosicaoAcumulada
 
 _COLUNAS_RESUMO = ["produto", "quantidade", "custo_total", "preco_medio"]
@@ -56,30 +56,24 @@ def _aplicar_ajuste_sem_custo(
     pos: PosicaoAcumulada,
     efeito: EfeitoMovimentacao,
     qtd_liquida: float,
-    movimentacao: str,
     aplicar_define: bool,
 ) -> None:
-    texto = movimentacao.lower()
-
-    if efeito.quantidade == "define":
-        if not aplicar_define and any(t in texto for t in ["atualizacao", "atualizao"]):
+    if efeito.semantica_quantidade == SemanticaQuantidade.TOTAL:
+        if efeito.tipo == TipoMovimentacao.PROVENTO and not aplicar_define:
+            return
+        if efeito.tipo == TipoMovimentacao.GRUPAMENTO and abs(qtd_liquida) <= 0:
             return
         pos.definir_quantidade(qtd_liquida)
         return
 
-    if "grupamento" in texto or "agrupamento" in texto:
-        if abs(qtd_liquida) > 0:
-            pos.definir_quantidade(qtd_liquida)
+    if efeito.semantica_quantidade == SemanticaQuantidade.NENHUMA:
         return
 
-    if "desdobro" in texto or "split" in texto:
+    if efeito.tipo == TipoMovimentacao.DESDOBRAMENTO:
         pos.somar_quantidade(qtd_liquida)
         return
 
-    if any(token in texto for token in ["leilao", "leilão", "facao"]):
-        return
-
-    if any(token in texto for token in ["fracao", "fração", "facao"]):
+    if efeito.tipo == TipoMovimentacao.AJUSTE_QUANTIDADE:
         if qtd_liquida < 0:
             pos.reduzir(abs(qtd_liquida))
         return
@@ -92,7 +86,6 @@ def _aplicar_linha(
     row: pd.Series,
     aplicar_define: bool,
 ) -> None:
-    movimentacao = str(row.get("movimentacao") or "").lower()
     qtd_liquida = float(row.get("qtd_liquida", 0.0) or 0.0)
     valor_liquido = float(row.get("valor_liquido", 0.0) or 0.0)
     efeito = efeito_movimentacao(row.get("movimentacao"), row.get("entrada_saida"))
@@ -105,7 +98,7 @@ def _aplicar_linha(
         return
 
     if efeito.custo == "nenhum" and efeito.quantidade in {"soma", "subtrai", "define"}:
-        _aplicar_ajuste_sem_custo(pos, efeito, qtd_liquida, movimentacao, aplicar_define)
+        _aplicar_ajuste_sem_custo(pos, efeito, qtd_liquida, aplicar_define)
         return
 
     if qtd_liquida > 0:

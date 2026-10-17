@@ -64,9 +64,9 @@ def classificar_movimentacao(texto: object) -> TipoMovimentacao:
     if tipo is not None:
         return tipo
 
-    for chave, tipo_cadastrado in CATALOGO_MOVIMENTACOES.items():
-        if valor.startswith(chave) or chave in valor:
-            return tipo_cadastrado
+    for chave in sorted(CATALOGO_MOVIMENTACOES, key=len, reverse=True):
+        if valor.startswith(chave):
+            return CATALOGO_MOVIMENTACOES[chave]
 
     return TipoMovimentacao.DESCONHECIDA
 
