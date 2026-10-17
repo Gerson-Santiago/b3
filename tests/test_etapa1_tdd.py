@@ -51,7 +51,7 @@ def test_tdd_consulta_categoria_via_posicao_sem_regex():
     pos = read_posicao_file(POS_FIXTURE)
     mapa = mapear_categorias_posicao(pos)
     
-    assert obter_categoria_ativo("PETR4", mapa) == "ACOES"
+    assert obter_categoria_ativo("PETR4", mapa) == "AÇÕES"
     assert obter_categoria_ativo("GOGL35", mapa) == "BDR"
     assert obter_categoria_ativo("MSFT34", mapa) == "BDR"
     

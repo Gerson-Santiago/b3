@@ -204,7 +204,7 @@ class TestAllSheetsPosicao:
 
         df = read_posicao_file(xlsx)
         cats = set(df["categoria"].unique())
-        assert "ACOES"   in cats, "Aba Acoes nao foi lida"
+        assert "AÇÕES"   in cats, "Aba Acoes nao foi lida"
         assert "BDR"     in cats, "Aba BDR nao foi lida"
         assert "TESOURO" in cats, "Aba Tesouro Direto nao foi lida"
 

@@ -175,7 +175,21 @@ def main():
                 st.plotly_chart(pie_carteira_por_categoria(pos_categoria), width="stretch")
 
             st.markdown("### Posição Detalhada em Custódia")
-            st.dataframe(pos, width="stretch")
+
+            pos_acoes_bdr = pos[pos["categoria"].isin(["AÇÕES", "BDR"])].sort_values("produto")
+            pos_tesouro = pos[pos["categoria"] == "TESOURO"].sort_values("produto")
+
+            st.markdown("#### 📈 Ações e BDR")
+            if pos_acoes_bdr.empty:
+                st.info("Nenhum ativo de Ações ou BDR em custódia.")
+            else:
+                st.dataframe(pos_acoes_bdr, width="stretch")
+
+            st.markdown("#### 🏦 Tesouro Direto")
+            if pos_tesouro.empty:
+                st.info("Nenhum ativo de Tesouro Direto em custódia.")
+            else:
+                st.dataframe(pos_tesouro, width="stretch")
 
             if not pos_filtered.empty:
                 st.caption("ℹ️ Dados baseados no snapshot de custódia mais recente da B3.")

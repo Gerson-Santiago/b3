@@ -89,12 +89,12 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
     def test_categorizar_sheet_classifies_by_sheet(self):
         self.assertEqual(_categorizar_sheet("Tesouro Direto"), "TESOURO")
         self.assertEqual(_categorizar_sheet("BDR"), "BDR")
-        self.assertEqual(_categorizar_sheet("Acoes"), "ACOES")
+        self.assertEqual(_categorizar_sheet("Acoes"), "AÇÕES")
 
     def test_classificar_ativo_recognizes_bdr_tickers_without_bdr_word(self):
         self.assertEqual(classificar_ativo("GOGL35"), "BDR")
         self.assertEqual(classificar_ativo("MSFT34"), "BDR")
-        self.assertEqual(classificar_ativo("PETR4"), "ACOES")
+        self.assertEqual(classificar_ativo("PETR4"), "AÇÕES")
 
     def test_compute_position_groups_by_product(self):
         df = pd.DataFrame(
@@ -119,7 +119,7 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
         )
         result = compute_position_categoria(df)
         resumo = dict(zip(result["categoria"], result["valor"]))
-        self.assertEqual(resumo["ACOES"], 100)
+        self.assertEqual(resumo["AÇÕES"], 100)
         self.assertEqual(resumo["BDR"], 80)
         self.assertEqual(resumo["TESOURO"], 50)
 

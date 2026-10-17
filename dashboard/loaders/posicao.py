@@ -20,7 +20,7 @@ def _categorizar_sheet(sheet_name: str) -> str:
         return "TESOURO"
     if "bdr" in nome:
         return "BDR"
-    return "ACOES"
+    return "AÇÕES"
 
 
 def read_posicao_excel(file_source: Union[str, Path, BytesIO, object]):

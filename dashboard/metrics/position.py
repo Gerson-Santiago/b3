@@ -71,7 +71,7 @@ def classificar_ativo(produto, mapa_categorias: dict[str, str] | None = None):
     if tick in {"GOGL35", "MSFT34", "AAPL34", "ROXO34", "NUBR33", "NUBR35", "TSLA34", "COCA34"}:
         return "BDR"
 
-    return "ACOES"
+    return "AÇÕES"
 
 
 def _normalize_positions(df):

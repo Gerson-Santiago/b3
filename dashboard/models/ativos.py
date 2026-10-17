@@ -24,7 +24,7 @@ class Ativo:
 
     @property
     def eh_acao(self) -> bool:
-        return self.categoria.upper() == "ACOES"
+        return self.categoria.upper() == "AÇÕES"
 
     @property
     def eh_tesouro(self) -> bool:
