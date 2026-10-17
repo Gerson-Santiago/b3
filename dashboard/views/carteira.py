@@ -74,19 +74,24 @@ def render(state: DashboardState) -> None:
 
     st.markdown("### Posição Detalhada em Custódia")
 
+    is_fallback = state.pos_filtered.empty
+    rotulo_valor = "Custo histórico" if is_fallback else "Valor Atual (snapshot)"
+
     cards_acoes_bdr = state.pos_cards[state.pos_cards["categoria"].isin(["AÇÕES", "BDR"])].sort_values("produto")
     cards_tesouro = state.pos_cards[state.pos_cards["categoria"] == "TESOURO"].sort_values("produto")
 
     if separar:
         cards_acoes = state.pos_cards[state.pos_cards["categoria"] == "AÇÕES"].sort_values("produto")
         cards_bdr = state.pos_cards[state.pos_cards["categoria"] == "BDR"].sort_values("produto")
-        render_cards_grid(cards_acoes, "Ações", "Nenhum ativo de Ações em custódia.")
-        render_cards_grid(cards_bdr, "BDR", "Nenhum BDR em custódia.")
+        render_cards_grid(cards_acoes, "Ações", "Nenhum ativo de Ações em custódia.", rotulo_valor=rotulo_valor)
+        render_cards_grid(cards_bdr, "BDR", "Nenhum BDR em custódia.", rotulo_valor=rotulo_valor)
     else:
-        render_cards_grid(cards_acoes_bdr, "Bolsa de Valores (Ações & BDR)", "Nenhum ativo de Ações ou BDR em custódia.")
+        render_cards_grid(cards_acoes_bdr, "Bolsa de Valores (Ações & BDR)", "Nenhum ativo de Ações ou BDR em custódia.", rotulo_valor=rotulo_valor)
 
-    render_cards_grid(cards_tesouro, "Tesouro Direto", "Nenhum ativo de Tesouro Direto em custódia.")
+    render_cards_grid(cards_tesouro, "Tesouro Direto", "Nenhum ativo de Tesouro Direto em custódia.", rotulo_valor=rotulo_valor)
 
-    if not state.pos_filtered.empty:
+    if not is_fallback:
         st.caption("Dados baseados no snapshot de custódia mais recente da B3.")
+    else:
+        st.info("ℹ️ Exibindo **Custo histórico**: Nenhum arquivo de posição carregado. Os valores correspondem ao custo acumulado de aquisição.")
 

@@ -136,28 +136,49 @@ def test_compute_preco_medio_uses_nan_when_cost_is_unknown_for_roxo34_and_matche
         assert linha["quantidade"].iloc[0] == pytest.approx(quantidade)
 
 
-def test_reconciliacao_sinaliza_ajuste_por_atualizacao_roxo34():
-    """Valida que ROXO34 diverge sem define e é sinalizado como 'ajuste por atualização'."""
+def test_reconciliacao_atualizacao_no_op_vs_define_7_ativos():
+    """Valida que para os 7 ativos reais, atualizar com define ou ignorar (no-op) produz o mesmo saldo (PETR4 e ROXO34 sem flag)."""
     mov = read_movimentacao_file(Path(__file__).resolve().parent / "fixtures" / "movimentacao_7_ativos.xlsx")
     pos = read_posicao_file(Path(__file__).resolve().parent / "fixtures" / "posicao_7_ativos.xlsx")
 
-    # Quantidade com define (20.0) vs sem define (40.0)
     qtd_com_define = quantidade_ate(mov, "2026-10-16", aplicar_define=True)
     qtd_sem_define = quantidade_ate(mov, "2026-10-16", aplicar_define=False)
 
-    assert qtd_com_define["ROXO34"] == pytest.approx(20.0)
-    assert qtd_sem_define["ROXO34"] == pytest.approx(40.0)
-    assert qtd_com_define["ROXO34"] != qtd_sem_define["ROXO34"]
+    # Para os 7 ativos, as duas versões são idênticas
+    for ativo, qtd in qtd_com_define.items():
+        assert qtd_sem_define[ativo] == pytest.approx(qtd)
 
-    # Comparar com auditoria de atualização
     tabela = comparar(qtd_com_define, pos, mov_df=mov, data_corte="2026-10-16")
     assert "observacao" in tabela.columns
 
-    linha_roxo = tabela[tabela["ativo"] == "ROXO34"].iloc[0]
-    assert linha_roxo["observacao"] == "ajuste por atualização"
-    assert linha_roxo["delta"] == pytest.approx(0.0)
+    # Como não diferem para os 7 ativos, PETR4 e ROXO34 ficam sem a flag
+    linha_petr = tabela[tabela["ativo"] == "PETR4"].iloc[0]
+    assert linha_petr["observacao"] == ""
 
-    # Ativos sem evento de atualização (ex: CPFE3) não devem ter a observação
-    linha_cpfe = tabela[tabela["ativo"] == "CPFE3"].iloc[0]
-    assert linha_cpfe["observacao"] == ""
+    linha_roxo = tabela[tabela["ativo"] == "ROXO34"].iloc[0]
+    assert linha_roxo["observacao"] == ""
+
+
+def test_reconciliacao_sinaliza_ajuste_quando_define_e_no_op_diferem():
+    """Quando o evento define altera o saldo em relação ao histórico acumulado no-op, a flag 'ajuste por atualização' é exibida."""
+    mov_sintetico = pd.DataFrame(
+        [
+            {"data": "2024-01-01", "produto": "TEST3", "movimentacao": "compra", "entrada_saida": "credito", "quantidade": 10.0},
+            # Evento define ajusta o saldo para 15.0 (divergindo do acumulado cronológico 10.0)
+            {"data": "2024-02-01", "produto": "TEST3", "movimentacao": "atualizacao", "entrada_saida": "credito", "quantidade": 15.0},
+        ]
+    )
+    mov_sintetico["data"] = pd.to_datetime(mov_sintetico["data"])
+    pos_sintetico = pd.DataFrame([{"produto": "TEST3", "quantidade": 15.0}])
+
+    qtd_def = quantidade_ate(mov_sintetico, "2024-12-31", aplicar_define=True)
+    qtd_no_op = quantidade_ate(mov_sintetico, "2024-12-31", aplicar_define=False)
+
+    assert qtd_def["TEST3"] == pytest.approx(15.0)
+    assert qtd_no_op["TEST3"] == pytest.approx(10.0)
+
+    tabela = comparar(qtd_def, pos_sintetico, mov_df=mov_sintetico, data_corte="2024-12-31")
+    linha = tabela[tabela["ativo"] == "TEST3"].iloc[0]
+    assert linha["observacao"] == "ajuste por atualização"
+
 

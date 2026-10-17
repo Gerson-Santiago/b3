@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 from datetime import date
 
 import pandas as pd
-
 try:
+    from dashboard.filters import filtrar_dataframe
     from dashboard.metrics.dy import compute_dy_metrics
     from dashboard.metrics.evolucao import compute_evolucao_separada
     from dashboard.metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
@@ -20,6 +20,7 @@ try:
     from dashboard.models.ativos import renomear_ativo
     from dashboard.models.eventos import aplicar_eventos_ordenados
 except ImportError:  # pragma: no cover
+    from filters import filtrar_dataframe
     from metrics.dy import compute_dy_metrics
     from metrics.evolucao import compute_evolucao_separada
     from metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
@@ -122,6 +123,8 @@ class DashboardState:
         pos_filtered: pd.DataFrame,
         end_date: date,
         mov_df: pd.DataFrame | None = None,
+        produtos_selecionados: list[str] | None = None,
+        instituicoes_selecionadas: list[str] | None = None,
     ) -> "DashboardState":
         """Calcula todos os dados derivados e retorna um ``DashboardState``.
 
@@ -140,25 +143,23 @@ class DashboardState:
         mov_df:
             Movimentação completa (opcional). Se fornecido, o preço médio e a posição
             de fallback usam o histórico inteiro até ``end_date`` (sem corte de ``start_date``).
+        produtos_selecionados:
+            Lista de produtos filtrados na sidebar (se vazia ou None, sem filtro).
+        instituicoes_selecionadas:
+            Lista de instituições filtradas na sidebar (se vazia ou None, sem filtro).
         """
         # SSOT do mapa de categorias — sempre vem do pos_df sem filtro
         mapa_cat = obter_mapa_categorias(pos_df) if not pos_df.empty else {}
 
         # Determina o histórico de movimentações até end_date (sem corte de start_date)
         if mov_df is not None and not mov_df.empty:
-            mov_ate_end_date = mov_df.copy()
-            if end_date is not None and "data" in mov_ate_end_date.columns:
-                mov_ate_end_date["data"] = pd.to_datetime(mov_ate_end_date["data"], errors="coerce")
-                mov_ate_end_date = mov_ate_end_date[mov_ate_end_date["data"] <= pd.Timestamp(end_date)]
-            if not mov_filtered.empty:
-                if "produto" in mov_filtered.columns and "produto" in mov_ate_end_date.columns:
-                    prods_filtrados = set(mov_filtered["produto"].dropna().unique())
-                    if prods_filtrados < set(mov_df["produto"].dropna().unique()):
-                        mov_ate_end_date = mov_ate_end_date[mov_ate_end_date["produto"].isin(prods_filtrados)]
-                if "instituicao" in mov_filtered.columns and "instituicao" in mov_ate_end_date.columns:
-                    insts_filtradas = set(mov_filtered["instituicao"].dropna().unique())
-                    if insts_filtradas < set(mov_df["instituicao"].dropna().unique()):
-                        mov_ate_end_date = mov_ate_end_date[mov_ate_end_date["instituicao"].isin(insts_filtradas)]
+            mov_ate_end_date = filtrar_dataframe(
+                mov_df,
+                instituicoes=instituicoes_selecionadas or [],
+                produtos=produtos_selecionados or [],
+                start_date=None,
+                end_date=end_date,
+            )
         else:
             mov_ate_end_date = mov_filtered
 

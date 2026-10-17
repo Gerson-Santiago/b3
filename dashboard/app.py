@@ -155,6 +155,8 @@ def main():
         mov_filtered=mov_filtered,
         pos_filtered=pos_filtered,
         end_date=end_date,
+        produtos_selecionados=selected_prod,
+        instituicoes_selecionadas=selected_inst,
     )
 
     col1, col2, col3 = st.columns(3)

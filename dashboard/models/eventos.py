@@ -135,16 +135,14 @@ def aplicar_eventos_ordenados(df, aplicar_define: bool = True):
                 texto = movimentacao.lower()
 
                 if efeito.quantidade == "define":
-                    if aplicar_define:
-                        quantidade_atual = abs(qtd_liquida)
-                        if quantidade_atual == 0:
-                            custo_total = 0.0
+                    if not aplicar_define and any(t in texto for t in ["atualizacao", "atualizao"]):
+                        # no-op especificamente para evento de 'atualização'
                         continue
-                    else:
-                        quantidade_atual += qtd_liquida
-                        if quantidade_atual < 0:
-                            quantidade_atual = 0.0
-                        continue
+
+                    quantidade_atual = abs(qtd_liquida)
+                    if quantidade_atual == 0:
+                        custo_total = 0.0
+                    continue
 
                 if "grupamento" in texto or "agrupamento" in texto:
                     if abs(qtd_liquida) > 0:

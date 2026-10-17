@@ -208,3 +208,42 @@ class TestR10PrecoMedioQuantidadeFiltroData:
         assert set(state.pos["produto"].unique()) == {"PETR4"}
         assert set(state.pos_cards["produto"].unique()) == {"PETR4"}
 
+    def test_ativo_sintetico_compra_2023_preserva_quantidade_e_preco_medio_com_start_date_recente(self):
+        """Ativo sintético XYZ3 com compra única em 2023 mantém quantidade 100 e PM 10.0 com start_date de 6 meses atrás."""
+        mov_df = pd.DataFrame(
+            {
+                "data": pd.to_datetime(["2023-01-10", "2024-08-01"]),
+                "mes": ["2023-01", "2024-08"],
+                "produto": ["XYZ3", "PETR4"],
+                "movimentacao": ["Compra", "Compra"],
+                "entrada_saida": ["Crédito", "Crédito"],
+                "quantidade": [100.0, 10.0],
+                "qtd_liquida": [100.0, 10.0],
+                "valor_liquido": [1000.0, 300.0],
+                "instituicao": ["XP", "XP"],
+            }
+        )
+        pos_df = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs", "categoria"])
+        pos_filtered = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs", "categoria"])
+        end_date = date(2024, 12, 31)
+
+        # Usuário selecionou start_date = 2024-06-01 (6 meses atrás), SEM filtrar produto (produtos_selecionados=[])
+        mov_6m = mov_df[mov_df["data"] >= pd.Timestamp("2024-06-01")].copy()
+
+        state = DashboardState.build(
+            pos_df=pos_df,
+            mov_df=mov_df,
+            mov_filtered=mov_6m,
+            pos_filtered=pos_filtered,
+            end_date=end_date,
+            produtos_selecionados=[],
+            instituicoes_selecionadas=[],
+        )
+
+        # XYZ3 deve existir em pos_cards com quantidade 100.0 e preço médio 10.0
+        assert "XYZ3" in state.pos_cards["produto"].values, "XYZ3 sumiu dos cards devido a inferência incorreta de filtro!"
+        xyz = state.pos_cards[state.pos_cards["produto"] == "XYZ3"].iloc[0]
+        assert xyz["quantidade"] == pytest.approx(100.0)
+        assert xyz["preco_medio"] == pytest.approx(10.0)
+
+

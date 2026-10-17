@@ -253,3 +253,39 @@ class TestEvolPorProduto:
         )
         assert state.evol_bolsa["curva_aportes"].empty
         assert state.evol_tesouro["curva_aportes"].empty
+
+
+# ---------------------------------------------------------------------------
+# R8: Rótulo de Custo Histórico vs Valor Atual no fallback de posição
+# ---------------------------------------------------------------------------
+
+class TestR8RotuloCustoHistoricoFallback:
+    def test_rotulo_valor_usa_custo_historico_quando_pos_filtered_vazio(self, mov_df):
+        """No fallback sem arquivo de posição, a view define rótulo 'Custo histórico'."""
+        vazio = pd.DataFrame(columns=["produto", "quantidade", "valor", "valor_abs", "categoria"])
+        state = DashboardState.build(
+            pos_df=vazio,
+            mov_df=mov_df,
+            mov_filtered=mov_df,
+            pos_filtered=vazio,
+            end_date=date(2024, 12, 31),
+        )
+        is_fallback = state.pos_filtered.empty
+        rotulo_valor = "Custo histórico" if is_fallback else "Valor Atual (snapshot)"
+        assert is_fallback is True
+        assert rotulo_valor == "Custo histórico"
+
+    def test_rotulo_valor_usa_snapshot_quando_pos_filtered_presente(self, pos_df, mov_df):
+        """Quando o arquivo de posição está presente, o rótulo é 'Valor Atual (snapshot)'."""
+        state = DashboardState.build(
+            pos_df=pos_df,
+            mov_df=mov_df,
+            mov_filtered=mov_df,
+            pos_filtered=pos_df,
+            end_date=date(2024, 12, 31),
+        )
+        is_fallback = state.pos_filtered.empty
+        rotulo_valor = "Custo histórico" if is_fallback else "Valor Atual (snapshot)"
+        assert is_fallback is False
+        assert rotulo_valor == "Valor Atual (snapshot)"
+

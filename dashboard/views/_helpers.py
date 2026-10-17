@@ -39,7 +39,7 @@ def render_section(
         st.dataframe(df, width="stretch")
 
 
-def _render_card(row: pd.Series) -> None:
+def _render_card(row: pd.Series, rotulo_valor: str = "Valor Atual (snapshot)") -> None:
     """Renderiza um único card de ativo dentro de um st.container."""
     produto = str(row.get("produto", "—"))
     categoria = str(row.get("categoria", ""))
@@ -78,7 +78,7 @@ def _render_card(row: pd.Series) -> None:
         c3, c4 = st.columns(2)
         c3.metric("Custo Total", f"R$ {custo_total:,.2f}" if custo_total else "—")
         c4.metric(
-            "Valor Atual (snapshot)",
+            rotulo_valor,
             f"R$ {valor_abs:,.2f}",
             delta=delta_val,
             delta_color=delta_color,
@@ -92,6 +92,7 @@ def render_cards_grid(
     *,
     nivel: str = "####",
     cards_por_linha: int = _CARDS_POR_LINHA,
+    rotulo_valor: str = "Valor Atual (snapshot)",
 ) -> None:
     """Renderiza uma grade de cards de ativos.
 
@@ -118,4 +119,4 @@ def render_cards_grid(
         cols = st.columns(len(bloco))
         for col, row in zip(cols, bloco):
             with col:
-                _render_card(row)
+                _render_card(row, rotulo_valor=rotulo_valor)
