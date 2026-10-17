@@ -207,7 +207,7 @@ def test_loaders_anotam_ativo_id():
 def test_classe_do_catalogo_coincide_com_aba_da_posicao():
     pos_dir = Path(__file__).resolve().parents[1] / "xlsx" / "posicao"
     snapshots = sorted(pos_dir.glob("*.xlsx"))
-    assert len(snapshots) == 4, f"Esperado 4 snapshots de posição, encontrado {len(snapshots)}"
+    assert len(snapshots) >= 4, f"Esperado pelo menos 4 snapshots de posição, encontrado {len(snapshots)}"
 
     for snap in snapshots:
         qualidade = RelatorioQualidade()

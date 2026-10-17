@@ -7,7 +7,7 @@ from typing import Union
 import pandas as pd
 
 from dashboard.models.movimentacao import SINAL_ENTRADA_SAIDA
-from dashboard.utils import parse_money
+from dashboard.utils import parse_money, parse_qtd
 
 try:
     from dashboard.columns import ALIASES_MOV, normaliza_colunas
@@ -63,7 +63,9 @@ def _normalize_movimentacao_df(df):
     if df["data"].isna().any() and not raw_data.empty:
         df["data"] = df["data"].fillna(pd.to_datetime(raw_data, format="mixed", dayfirst=True, errors="coerce"))
 
-    for col in ["quantidade", "preco_unitario", "valor_operacao"]:
+    # quantidade pode ser fracionária (ex.: Tesouro Direto: 0,12 título)
+    df["quantidade"] = df["quantidade"].apply(parse_qtd)
+    for col in ["preco_unitario", "valor_operacao"]:
         df[col] = df[col].apply(parse_money)
 
     df["entrada_saida"] = df["entrada_saida"].fillna("").astype(str).str.strip().str.lower()

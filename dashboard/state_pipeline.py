@@ -25,6 +25,7 @@ _COLUNAS_CARDS_VAZIA = [
     "pl",
     "variacao_pct",
     "peso_pct",
+    "peso_pct_no_produto",
 ]
 
 
@@ -118,6 +119,15 @@ def enriquecer_pos_cards(pos: pd.DataFrame, pm_df: pd.DataFrame) -> pd.DataFrame
         cards["peso_pct"] = (cards["valor_abs"] / total_patrimonio * 100).round(2)
     else:
         cards["peso_pct"] = 0.0
+
+    # Peso dentro da própria categoria (equivalente ao "% do produto" do Nubank)
+    total_por_categoria = cards.groupby("categoria")["valor_abs"].transform("sum")
+    cards["peso_pct_no_produto"] = (
+        (cards["valor_abs"] / total_por_categoria.replace(0, float("nan")) * 100)
+        .fillna(0.0)
+        .round(2)
+    )
+
     return cards.sort_values("valor_abs", ascending=False).reset_index(drop=True)
 
 

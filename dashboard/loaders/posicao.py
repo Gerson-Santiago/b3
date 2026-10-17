@@ -6,7 +6,7 @@ from typing import Union
 
 import pandas as pd
 
-from dashboard.utils import parse_money
+from dashboard.utils import parse_money, parse_qtd
 
 try:
     from dashboard.columns import ALIASES_POS, normaliza_colunas
@@ -51,7 +51,7 @@ def read_posicao_excel(file_source: Union[str, Path, BytesIO, object], qualidade
             df["valor_operacao"] = df["valor_operacao"].apply(parse_money)
 
         if "quantidade" in df.columns:
-            df["quantidade"] = df["quantidade"].apply(parse_money)
+            df["quantidade"] = df["quantidade"].apply(parse_qtd)
 
         for col in ["produto", "instituicao", "conta", "tipo", "escriturador"]:
             if col in df.columns:

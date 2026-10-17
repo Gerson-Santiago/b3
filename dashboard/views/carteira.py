@@ -122,20 +122,13 @@ def _render_cards_custodia(state: DashboardState, separar: bool) -> None:
     is_fallback = state.pos_filtered.empty
     rotulo_valor = "Custo histórico" if is_fallback else "Valor Atual (snapshot)"
 
-    mask_bolsa = state.pos_cards["categoria"].astype(str).str.upper().isin(CATEGORIAS_BOLSA)
-    mask_tesouro = state.pos_cards["categoria"].astype(str).str.upper() == CATEGORIA_TESOURO
+    cat_upper = state.pos_cards["categoria"].astype(str).str.upper()
+    cards_acoes = state.pos_cards[cat_upper.isin(["AÇÕES", "ACOES", "AÇÃO"])].sort_values("valor_abs", ascending=False)
+    cards_bdr = state.pos_cards[cat_upper.isin(["BDR", "BDRS"])].sort_values("valor_abs", ascending=False)
+    cards_tesouro = state.pos_cards[cat_upper == CATEGORIA_TESOURO].sort_values("valor_abs", ascending=False)
 
-    cards_acoes_bdr = state.pos_cards[mask_bolsa].sort_values("valor_abs", ascending=False)
-    cards_tesouro = state.pos_cards[mask_tesouro].sort_values("valor_abs", ascending=False)
-
-    if separar:
-        cards_acoes = state.pos_cards[state.pos_cards["categoria"].astype(str).str.upper() == "AÇÕES"].sort_values("valor_abs", ascending=False)
-        cards_bdr = state.pos_cards[state.pos_cards["categoria"].astype(str).str.upper() == "BDR"].sort_values("valor_abs", ascending=False)
-        render_cards_grid(cards_acoes, "Ações", "Nenhum ativo de Ações em custódia.", rotulo_valor=rotulo_valor)
-        render_cards_grid(cards_bdr, "BDR", "Nenhum BDR em custódia.", rotulo_valor=rotulo_valor)
-    else:
-        render_cards_grid(cards_acoes_bdr, "Bolsa de Valores (Ações & BDR)", "Nenhum ativo de Ações ou BDR em custódia.", rotulo_valor=rotulo_valor)
-
+    render_cards_grid(cards_acoes, "Ações", "Nenhum ativo de Ações em custódia.", rotulo_valor=rotulo_valor)
+    render_cards_grid(cards_bdr, "BDR", "Nenhum BDR em custódia.", rotulo_valor=rotulo_valor)
     render_cards_grid(cards_tesouro, "Tesouro Direto", "Nenhum ativo de Tesouro Direto em custódia.", rotulo_valor=rotulo_valor)
 
     if not is_fallback:

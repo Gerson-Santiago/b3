@@ -86,7 +86,7 @@ class TestEnriquecerPosCards:
         })
         result = _enriquecer_pos_cards(pos, pm)
         assert set(["produto", "categoria", "quantidade", "valor_abs",
-                     "preco_medio", "custo_total", "pl", "variacao_pct", "peso_pct"]).issubset(result.columns)
+                     "preco_medio", "custo_total", "pl", "variacao_pct", "peso_pct", "peso_pct_no_produto"]).issubset(result.columns)
 
     def test_peso_pct_calculado_corretamente(self):
         pos = pd.DataFrame({
@@ -102,6 +102,30 @@ class TestEnriquecerPosCards:
         assert petr["peso_pct"] == pytest.approx(60.0)
         assert vale["peso_pct"] == pytest.approx(40.0)
 
+    def test_peso_pct_no_produto_calculado_corretamente(self):
+        """Valida que peso_pct_no_produto calcula o percentual dentro de cada categoria separadamente."""
+        pos = pd.DataFrame({
+            "produto": ["PETR4", "VALE3", "GOGL35"],
+            "categoria": ["AÇÕES", "AÇÕES", "BDR"],
+            "quantidade": [10.0, 5.0, 2.0],
+            "valor_abs": [750.0, 250.0, 500.0],  # Total AÇÕES = 1000, Total BDR = 500, Carteira = 1500
+        })
+        pm = pd.DataFrame(columns=["produto", "preco_medio", "custo_total"])
+        result = _enriquecer_pos_cards(pos, pm)
+        petr = result[result["produto"] == "PETR4"].iloc[0]
+        vale = result[result["produto"] == "VALE3"].iloc[0]
+        gogl = result[result["produto"] == "GOGL35"].iloc[0]
+
+        # Peso na carteira total
+        assert petr["peso_pct"] == pytest.approx(50.0)
+        assert vale["peso_pct"] == pytest.approx(16.67, abs=0.01)
+        assert gogl["peso_pct"] == pytest.approx(33.33, abs=0.01)
+
+        # Peso dentro do produto (categoria)
+        assert petr["peso_pct_no_produto"] == pytest.approx(75.0)
+        assert vale["peso_pct_no_produto"] == pytest.approx(25.0)
+        assert gogl["peso_pct_no_produto"] == pytest.approx(100.0)
+
     def test_peso_pct_zero_quando_carteira_zerada(self):
         pos = pd.DataFrame({
             "produto": ["PETR4"],
@@ -112,6 +136,7 @@ class TestEnriquecerPosCards:
         pm = pd.DataFrame(columns=["produto", "preco_medio", "custo_total"])
         result = _enriquecer_pos_cards(pos, pm)
         assert result.loc[0, "peso_pct"] == pytest.approx(0.0)
+        assert result.loc[0, "peso_pct_no_produto"] == pytest.approx(0.0)
 
     def test_pl_calculado_corretamente(self):
         pos = pd.DataFrame({"produto": ["PETR4"], "categoria": ["AÇÕES"],
@@ -206,7 +231,7 @@ class TestPosCards:
 
     def test_pos_cards_tem_colunas_obrigatorias(self, state):
         esperadas = {"produto", "categoria", "quantidade", "valor_abs",
-                     "preco_medio", "custo_total", "pl", "variacao_pct", "peso_pct"}
+                     "preco_medio", "custo_total", "pl", "variacao_pct", "peso_pct", "peso_pct_no_produto"}
         assert esperadas.issubset(state.pos_cards.columns)
 
     def test_pos_cards_mesmos_produtos_que_pos(self, state):
