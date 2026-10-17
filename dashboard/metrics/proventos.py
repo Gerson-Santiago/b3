@@ -1,13 +1,18 @@
 import pandas as pd
 
+from dashboard.models.eventos import efeito_movimentacao
+
 
 def compute_proventos(df):
     if df is None or df.empty:
         return pd.DataFrame(columns=["mes", "valor_liquido"])
 
     proventos = df.loc[
-        df["entrada_saida"].str.contains("credito|crédito", case=False, na=False)
-        & ~df["movimentacao"].str.contains("compra|transferência|liquidação|transferencia|liquidacao", case=False, na=False)
+        df.apply(
+            lambda row: bool(efeito_movimentacao(row.get("movimentacao"), row.get("entrada_saida")).provento)
+            and str(row.get("entrada_saida") or "").strip().lower() in {"credito", "crédito"},
+            axis=1,
+        )
     ].copy()
 
     if proventos.empty:

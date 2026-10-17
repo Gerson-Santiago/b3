@@ -1,5 +1,7 @@
 import pandas as pd
 
+from dashboard.models.eventos import efeito_movimentacao
+
 from .position import compute_position
 
 
@@ -10,8 +12,11 @@ def compute_dy(df):
     pos = compute_position(df)
     recebidos = (
         df.loc[
-            df["entrada_saida"].str.contains("credito|crédito", case=False, na=False)
-            & ~df["movimentacao"].str.contains("compra|transferência|liquidação|transferencia|liquidacao", case=False, na=False)
+            df.apply(
+                lambda row: bool(efeito_movimentacao(row.get("movimentacao"), row.get("entrada_saida")).provento)
+                and str(row.get("entrada_saida") or "").strip().lower() in {"credito", "crédito"},
+                axis=1,
+            )
         ]
         .groupby("produto", as_index=False)["valor_liquido"]
         .sum()

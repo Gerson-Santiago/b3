@@ -12,6 +12,7 @@ from dashboard.loader import read_b3_file
 from dashboard.loaders.movimentacao import parse_money, read_movimentacao_file
 from dashboard.loaders.posicao import _categorizar_sheet, read_posicao_file
 from dashboard.metrics import (
+    classificar_ativo,
     compute_dy,
     compute_position,
     compute_position_categoria,
@@ -22,7 +23,7 @@ from dashboard.metrics import (
 
 class B3ArchitectureTest(unittest.TestCase):
     def test_movimentacao_has_expected_columns(self):
-        file_path = Path(__file__).resolve().parents[1] / "csv" / "movimentacao-2026-10-16-18-13-17.csv"
+        file_path = sorted((Path(__file__).resolve().parents[1] / "xlsx" / "movimentacao").glob("*.xlsx"))[-1]
         df = read_movimentacao_file(file_path)
         self.assertIn("entrada_saida", df.columns)
         self.assertIn("data", df.columns)
@@ -51,11 +52,11 @@ class B3ArchitectureTest(unittest.TestCase):
             app.load_default_posicao()
             self.assertTrue(any(str(call.args[0]).endswith(str(posicao_xlsx)) for call in mock_pos.call_args_list))
 
-    def test_dashboard_uses_streamlit_container_width(self):
+    def test_dashboard_uses_stretch_width(self):
         source = Path(__file__).resolve().parents[1] / "dashboard" / "app.py"
         rendered = source.read_text(encoding="utf-8")
-        self.assertIn('use_container_width=True', rendered)
-        self.assertNotIn('width="stretch"', rendered)
+        self.assertIn('width="stretch"', rendered)
+        self.assertNotIn('use_container_width=True', rendered)
 
 
 class B3ColumnsAndParsingTest(unittest.TestCase):
@@ -87,6 +88,11 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
         self.assertEqual(_categorizar_sheet("Tesouro Direto"), "TESOURO")
         self.assertEqual(_categorizar_sheet("BDR"), "BDR")
         self.assertEqual(_categorizar_sheet("Acoes"), "ACOES")
+
+    def test_classificar_ativo_recognizes_bdr_tickers_without_bdr_word(self):
+        self.assertEqual(classificar_ativo("GOGL35"), "BDR")
+        self.assertEqual(classificar_ativo("MSFT34"), "BDR")
+        self.assertEqual(classificar_ativo("PETR4"), "ACOES")
 
     def test_compute_position_groups_by_product(self):
         df = pd.DataFrame(
@@ -333,16 +339,22 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
         self.assertAlmostEqual(petr["preco_medio"], 20.0)
 
     def test_read_b3_file_dispatches_csv_and_xlsx(self):
+        import tempfile
         base_dir = Path(__file__).resolve().parents[1]
-        csv_path = sorted((base_dir / "csv").glob("*.csv"))[-1]
         xlsx_path = sorted((base_dir / "xlsx" / "posicao").glob("*.xlsx"))[-1]
-
-        csv_df = read_b3_file(csv_path)
         xlsx_df = read_b3_file(xlsx_path)
-
-        self.assertIn("produto", csv_df.columns)
         self.assertIn("categoria", xlsx_df.columns)
-        self.assertIn("valor_operacao", csv_df.columns)
+
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w", encoding="utf-8-sig") as f:
+            f.write("Entrada/Saída;Data;Movimentação;Produto;Instituição;Quantidade;Preço unitário;Valor da Operação\n"
+                    "Credito;06/08/2026;Compra;PETR4;Corretora X;10;30,00;300,00\n")
+            temp_csv = Path(f.name)
+        try:
+            csv_df = read_b3_file(temp_csv)
+            self.assertIn("produto", csv_df.columns)
+            self.assertIn("valor_operacao", csv_df.columns)
+        finally:
+            temp_csv.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

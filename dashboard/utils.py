@@ -1,9 +1,43 @@
 from __future__ import annotations
 
 import math
+import re
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+
+def _parse_file_date(path: Path):
+    match = re.search(r"(\d{4})-(\d{2})-(\d{2})", path.name)
+    if match:
+        return tuple(int(part) for part in match.groups())
+    return (0, 0, 0)
+
+
+def find_latest(folder, prefix: str):
+    base_dir = Path(folder)
+    if not base_dir.exists():
+        return None
+
+    candidates = []
+    for path in sorted(base_dir.iterdir()):
+        if not path.is_file() or path.name.startswith("~$"):
+            continue
+        if prefix.lower() not in path.name.lower():
+            continue
+        if path.suffix.lower() not in {".xlsx", ".xls", ".csv"}:
+            continue
+        candidates.append(path)
+
+    if not candidates:
+        return None
+
+    xlsx = [path for path in candidates if path.suffix.lower() in {".xlsx", ".xls"}]
+    if xlsx:
+        candidates = xlsx
+
+    return max(candidates, key=lambda path: (_parse_file_date(path), path.stat().st_mtime, path.name))
 
 
 def parse_money(value: Any):

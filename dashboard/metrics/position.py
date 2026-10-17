@@ -1,12 +1,23 @@
+import re
+
 import pandas as pd
 
 
 def classificar_ativo(produto):
-    texto = str(produto or "").upper()
+    texto = str(produto or "").upper().strip()
+    if not texto:
+        return "ACOES"
+
     if "TESOURO" in texto:
         return "TESOURO"
     if "BDR" in texto:
         return "BDR"
+
+    # BDRs no Brasil normalmente usam tickers como GOGL35, MSFT34, AAPL34, ROXO34,
+    # e não trazem a palavra "BDR" no código do ativo.
+    if re.fullmatch(r"[A-Z]{2,8}\d{2}", texto):
+        return "BDR"
+
     return "ACOES"
 
 

@@ -8,11 +8,15 @@ try:
     from dashboard.loaders.movimentacao import read_movimentacao_file
     from dashboard.loaders.posicao import read_posicao_file
     from dashboard.metrics import compute_dy, compute_evolucao, compute_position, compute_position_categoria, compute_position_por_categoria, compute_proventos
+    from dashboard.models.eventos import listar_movimentacoes_pendentes
+    from dashboard.utils import find_latest
 except ImportError:  # pragma: no cover
     from charts import bar_dy, bar_proventos, line_evolucao, pie_carteira, pie_carteira_por_categoria, pie_categoria
     from loaders.movimentacao import read_movimentacao_file
     from loaders.posicao import read_posicao_file
     from metrics import compute_dy, compute_evolucao, compute_position, compute_position_categoria, compute_position_por_categoria, compute_proventos
+    from models.eventos import listar_movimentacoes_pendentes
+    from utils import find_latest
 
 
 def load_default_movimentacao():
@@ -21,11 +25,18 @@ def load_default_movimentacao():
     csv_dir = base_dir / "csv"
 
     for folder, prefix in [(data_dir, "movimentacao"), (base_dir / "xlsx", "movimentacao"), (csv_dir, "movimentacao")]:
-        path = __import__("dashboard.loader", fromlist=["find_latest"]).find_latest(folder, prefix)
-        if path is not None:
+        try:
+            path = find_latest(folder, prefix)
+            if path is None:
+                continue
             return read_movimentacao_file(path)
+        except Exception as exc:
+            st.error(f"Erro ao carregar movimentação padrão em {folder}: {exc}")
+            raise
 
-    return pd.DataFrame()
+    message = "Nenhum arquivo de movimentação encontrado para carregar como padrão."
+    st.error(message)
+    raise FileNotFoundError(message)
 
 
 def load_default_posicao():
@@ -33,11 +44,18 @@ def load_default_posicao():
     data_dir = base_dir / "xlsx" / "posicao"
 
     for folder, prefix in [(data_dir, "posicao"), (base_dir / "xlsx", "posicao")]:
-        path = __import__("dashboard.loader", fromlist=["find_latest"]).find_latest(folder, prefix)
-        if path is not None:
+        try:
+            path = find_latest(folder, prefix)
+            if path is None:
+                continue
             return read_posicao_file(path)
+        except Exception as exc:
+            st.error(f"Erro ao carregar posição padrão em {folder}: {exc}")
+            raise
 
-    return pd.DataFrame()
+    message = "Nenhum arquivo de posição encontrado para carregar como padrão."
+    st.error(message)
+    raise FileNotFoundError(message)
 
 
 def main():
@@ -57,6 +75,10 @@ def main():
 
     mov_df = mov_df.copy()
     pos_df = pos_df.copy()
+
+    pendentes = listar_movimentacoes_pendentes(mov_df)
+    if pendentes:
+        st.warning("Algumas movimentações estão com efeito pendente na tabela central: " + ", ".join(pendentes))
 
     if mov_df.empty:
         base_df = pos_df
@@ -124,9 +146,9 @@ def main():
     else:
         col_pie1, col_pie2 = st.columns(2)
         with col_pie1:
-            st.plotly_chart(pie_carteira(pos), use_container_width=True)
+            st.plotly_chart(pie_carteira(pos), width="stretch")
         with col_pie2:
-            st.plotly_chart(pie_carteira_por_categoria(pos_categoria), use_container_width=True)
+            st.plotly_chart(pie_carteira_por_categoria(pos_categoria), width="stretch")
 
         st.markdown("### Distribuição por categoria")
         pie_cols = st.columns(3)
@@ -134,43 +156,43 @@ def main():
             if pos_bdr.empty:
                 st.info("Sem BDR")
             else:
-                st.plotly_chart(pie_categoria(pos_bdr), use_container_width=True)
+                st.plotly_chart(pie_categoria(pos_bdr), width="stretch")
         with pie_cols[1]:
             if pos_acoes.empty:
                 st.info("Sem Ações")
             else:
-                st.plotly_chart(pie_categoria(pos_acoes), use_container_width=True)
+                st.plotly_chart(pie_categoria(pos_acoes), width="stretch")
         with pie_cols[2]:
             if pos_tesouro.empty:
                 st.info("Sem Tesouro Direto")
             else:
-                st.plotly_chart(pie_categoria(pos_tesouro), use_container_width=True)
+                st.plotly_chart(pie_categoria(pos_tesouro), width="stretch")
 
     st.subheader("Proventos por mês")
     if proventos.empty:
         st.info("Não há proventos no período selecionado.")
     else:
-        st.plotly_chart(bar_proventos(proventos), use_container_width=True)
+        st.plotly_chart(bar_proventos(proventos), width="stretch")
 
     st.subheader("Evolução do patrimônio")
     if evol.empty:
         st.info("Sem histórico de movimentação para a seleção atual.")
     else:
-        st.plotly_chart(line_evolucao(evol), use_container_width=True)
+        st.plotly_chart(line_evolucao(evol), width="stretch")
 
     st.subheader("DY estimado")
     if dy.empty:
         st.info("Sem dados de DY para o filtro atual.")
     else:
-        st.plotly_chart(bar_dy(dy), use_container_width=True)
+        st.plotly_chart(bar_dy(dy), width="stretch")
 
     if not mov_filtered.empty:
         st.subheader("Detalhes da movimentação")
-        st.dataframe(mov_filtered, use_container_width=True)
+        st.dataframe(mov_filtered, width="stretch")
 
     if not pos_filtered.empty:
         st.subheader("Posição atual")
-        st.dataframe(pos_filtered, use_container_width=True)
+        st.dataframe(pos_filtered, width="stretch")
 
 
 if __name__ == "__main__":

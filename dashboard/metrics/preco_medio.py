@@ -1,6 +1,6 @@
 import pandas as pd
 
-from dashboard.models.movimentacao import is_ajuste_quantidade, is_provento
+from dashboard.models.eventos import efeito_movimentacao
 
 
 def compute_preco_medio(df):
@@ -41,17 +41,18 @@ def compute_preco_medio(df):
             movimentacao = str(row.get("movimentacao") or "").lower()
             qtd_liquida = float(row.get("qtd_liquida", 0.0) or 0.0)
             valor_liquido = float(row.get("valor_liquido", 0.0) or 0.0)
+            efeito = efeito_movimentacao(row.get("movimentacao"), row.get("entrada_saida"))
 
-            if is_provento(movimentacao):
+            if efeito.provento or efeito.status == "pendente":
                 continue
 
-            if movimentacao in {"atualizacao", "atualização", "dividendo - cancelado"}:
+            if efeito.quantidade == "ignora":
                 continue
 
             if abs(qtd_liquida) < 1e-9:
                 continue
 
-            if is_ajuste_quantidade(movimentacao):
+            if efeito.custo == "nenhum" and efeito.quantidade in {"soma", "subtrai", "define"}:
                 texto = movimentacao.lower()
 
                 if "grupamento" in texto or "agrupamento" in texto:
