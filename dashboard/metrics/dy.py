@@ -53,8 +53,11 @@ def compute_dy_metrics(mov_df: pd.DataFrame, pos_df: pd.DataFrame | None = None,
     if pos_df is not None and not pos_df.empty:
         pos_base = pos_df.copy()
         pos_base["ticker"] = pos_base["produto"].map(lambda p: renomear_ativo(p) or ticker(p))
-        col_val = "valor_atualizado" if "valor_atualizado" in pos_base.columns else "valor_operacao"
-        val_pos = pos_base.groupby("ticker", as_index=False)[col_val].sum().rename(columns={col_val: "valor_atual"})
+        col_val = next((c for c in ["valor_atualizado", "valor_operacao", "valor_liquido", "valor"] if c in pos_base.columns), None)
+        if col_val is not None:
+            val_pos = pos_base.groupby("ticker", as_index=False)[col_val].sum().rename(columns={col_val: "valor_atual"})
+        else:
+            val_pos = pd.DataFrame(columns=["ticker", "valor_atual"])
     else:
         pos_mov = compute_position(df)
         if not pos_mov.empty:
