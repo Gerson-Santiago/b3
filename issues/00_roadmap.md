@@ -14,7 +14,7 @@
 | :--- | :--- | :--- | :---: |
 | **Fase 1** | `models/` | Core: Motor de Cálculo e Eventos (1.1–1.4) | ✅ Concluído |
 | **Fase 2** | `tests/` | Proteção: Cobertura Unitária da Camada de Gráficos | ✅ Concluído |
-| **Fase 3** | `charts/` | SSoT & DRY: Consolidação da Camada de Visualização | ⏳ Backlog |
+| **Fase 3** | `charts/` | SSoT & DRY: Consolidação da Camada de Visualização | ✅ Concluído |
 | **Fase 4** | `charts/` + `views/` | Novos Gráficos: P&L e Rentabilidade Comparativa | ⏳ Backlog |
 | **Fase 5** | `metrics/` + `views/` | Calendário de Proventos e Fluxo de Caixa | ⏳ Backlog |
 
@@ -47,7 +47,7 @@
 
 ---
 
-## Fase 3 — SSoT & DRY: Consolidação da Camada de Visualização ⏳
+## Fase 3 — SSoT & DRY: Consolidação da Camada de Visualização ✅
 
 > **Princípio:** Eliminar duplicação dentro dos módulos de gráficos e mover regras de classificação para o domínio.
 
@@ -55,7 +55,7 @@
 | :--- | :--- | :--- | :---: |
 | 3.1 | [issue_031_dry_pie.md](./issue_031_dry_pie.md) | Extrair `_criar_donut()` para eliminar triplicação em `pie.py` | ✅ Concluído |
 | 3.2 | [issue_032_ssot_hierarquia.md](./issue_032_ssot_hierarquia.md) | Mover regras de remapeamento de categoria de `treemap.py` para `models/categorias.py` | ✅ Concluído |
-| 3.3 | [issue_033_dry_treemap.md](./issue_033_dry_treemap.md) | Extrair lógica de vazio e layout compartilhado em `treemap.py` | ⏳ Backlog |
+| 3.3 | [issue_033_dry_treemap.md](./issue_033_dry_treemap.md) | Extrair lógica de vazio e layout compartilhado em `treemap.py` | ✅ Concluído |
 
 ---
 

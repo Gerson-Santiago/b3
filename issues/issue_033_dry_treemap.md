@@ -1,7 +1,7 @@
 # Issue 3.3 — DRY: Extrair Lógica de Vazio e Layout Compartilhado em `treemap.py`
 
 **Fase:** 3 — SSoT & DRY
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 1–2 horas
 **Dependência:** Issue 2.1 a 2.4 ✅ + Issue 3.2 ✅
 
@@ -21,19 +21,19 @@ Extrair uma função interna `_figura_hierarquia_vazia(titulo, altura)` centrali
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Função interna `_figura_hierarquia_vazia(titulo, altura)` criada em `treemap.py`.
-- [ ] `treemap_carteira` e `sunburst_carteira` usam `_figura_hierarquia_vazia` no caso de DataFrame vazio/None.
-- [ ] As assinaturas públicas permanecem idênticas.
-- [ ] `pytest tests/test_treemap.py -v` → todos os testes continuam passando.
+- [x] Função interna `_figura_hierarquia_vazia(titulo, altura)` criada em `treemap.py`.
+- [x] `treemap_carteira` e `sunburst_carteira` usam `_figura_hierarquia_vazia` no caso de DataFrame vazio/None.
+- [x] As assinaturas públicas permanecem idênticas.
+- [x] `pytest tests/test_treemap.py -v` → todos os testes continuam passando.
 
 ---
 
 ## Checklist de Ações
 
-- [ ] Criar `_figura_hierarquia_vazia(titulo: str, altura: int) -> go.Figure`.
-- [ ] Substituir os 3 blocos de guarda duplicados por chamadas à nova função.
-- [ ] Verificar se o `hovertemplate` de `treemap_carteira` e `sunburst_carteira` é realmente idêntico — se sim, extrair para constante `_HOVER_HIERARQUIA`.
-- [ ] Executar `pytest tests/test_treemap.py -v`.
+- [x] Criar `_figura_hierarquia_vazia(titulo: str, altura: int) -> go.Figure`.
+- [x] Substituir os 3 blocos de guarda duplicados por chamadas à nova função.
+- [x] Verificar se o `hovertemplate` de `treemap_carteira` e `sunburst_carteira` é realmente idêntico — se sim, extrair para constante `_HOVER_HIERARQUIA`.
+- [x] Executar `pytest tests/test_treemap.py -v`.
 
 ---
 

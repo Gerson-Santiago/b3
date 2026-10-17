@@ -9,6 +9,21 @@ from .defaults import HEIGHT_TREEMAP, PIE_COLOR_SEQUENCE
 from dashboard.models.categorias import nome_exibicao_categoria
 
 
+_HOVER_HIERARQUIA = (
+    "<b>%{label}</b><br>"
+    "Valor: R$ %{value:,.2f}<br>"
+    "Participação no grupo: %{percentParent:.1%}<br>"
+    "Participação na carteira: %{percentRoot:.1%}"
+    "<extra></extra>"
+)
+
+
+def _figura_hierarquia_vazia(titulo: str, altura: int = HEIGHT_TREEMAP) -> go.Figure:
+    fig = go.Figure()
+    fig.update_layout(title=dict(text=titulo))
+    return aplicar_layout_padrao(fig, altura=altura)
+
+
 def _preparar_dados_hierarquia(pos: pd.DataFrame, separar_bdr_acoes: bool) -> pd.DataFrame:
     df = pos.copy()
     if "categoria" not in df.columns:
@@ -30,9 +45,7 @@ def treemap_carteira(
 ) -> go.Figure:
     """Gera gráfico Mapa de Árvore (Treemap) com a hierarquia de ativos da carteira."""
     if pos is None or pos.empty:
-        fig = go.Figure()
-        fig.update_layout(title=dict(text=titulo))
-        return aplicar_layout_padrao(fig, altura=HEIGHT_TREEMAP)
+        return _figura_hierarquia_vazia(titulo, altura=HEIGHT_TREEMAP)
 
     df = _preparar_dados_hierarquia(pos, separar_bdr_acoes)
 
@@ -46,13 +59,7 @@ def treemap_carteira(
     )
     fig.update_traces(
         textinfo="label+value+percent parent",
-        hovertemplate=(
-            "<b>%{label}</b><br>"
-            "Valor: R$ %{value:,.2f}<br>"
-            "Participação no grupo: %{percentParent:.1%}<br>"
-            "Participação na carteira: %{percentRoot:.1%}"
-            "<extra></extra>"
-        ),
+        hovertemplate=_HOVER_HIERARQUIA,
     )
     fig.update_layout(showlegend=False)
     return aplicar_layout_padrao(fig, altura=HEIGHT_TREEMAP, legenda_horizontal=False)
@@ -66,9 +73,7 @@ def sunburst_carteira(
 ) -> go.Figure:
     """Gera gráfico de Hierarquia circular (Sunburst) com os ativos da carteira."""
     if pos is None or pos.empty:
-        fig = go.Figure()
-        fig.update_layout(title=dict(text=titulo))
-        return aplicar_layout_padrao(fig, altura=HEIGHT_TREEMAP)
+        return _figura_hierarquia_vazia(titulo, altura=HEIGHT_TREEMAP)
 
     df = _preparar_dados_hierarquia(pos, separar_bdr_acoes)
 
@@ -82,13 +87,7 @@ def sunburst_carteira(
     )
     fig.update_traces(
         textinfo="label+percent parent",
-        hovertemplate=(
-            "<b>%{label}</b><br>"
-            "Valor: R$ %{value:,.2f}<br>"
-            "Participação no grupo: %{percentParent:.1%}<br>"
-            "Participação na carteira: %{percentRoot:.1%}"
-            "<extra></extra>"
-        ),
+        hovertemplate=_HOVER_HIERARQUIA,
     )
     fig.update_layout(showlegend=False)
     return aplicar_layout_padrao(fig, altura=HEIGHT_TREEMAP, legenda_horizontal=False)
