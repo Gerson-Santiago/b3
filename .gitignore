@@ -33,6 +33,10 @@ xlsx/
 *.xlsx
 *.xls
 
+# Keep frozen regression fixtures tracked
+!tests/fixtures/movimentacao_7_ativos.xlsx
+!tests/fixtures/posicao_7_ativos.xlsx
+
 # Fork project local content
 fork/
 
