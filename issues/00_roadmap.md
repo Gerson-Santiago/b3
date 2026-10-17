@@ -15,7 +15,7 @@
 | **Fase 1** | `models/` | Core: Motor de Cálculo e Eventos (1.1–1.4) | ✅ Concluído |
 | **Fase 2** | `tests/` | Proteção: Cobertura Unitária da Camada de Gráficos | ✅ Concluído |
 | **Fase 3** | `charts/` | SSoT & DRY: Consolidação da Camada de Visualização | ✅ Concluído |
-| **Fase 4** | `charts/` + `views/` | Novos Gráficos: P&L e Rentabilidade Comparativa | ⏳ Backlog |
+| **Fase 4** | `charts/` + `views/` | Novos Gráficos: P&L e Rentabilidade Comparativa | ✅ Concluído |
 | **Fase 5** | `metrics/` + `views/` | Calendário de Proventos e Fluxo de Caixa | ⏳ Backlog |
 
 ---
@@ -59,14 +59,14 @@
 
 ---
 
-## Fase 4 — Novos Gráficos: P&L e Rentabilidade ⏳
+## Fase 4 — Novos Gráficos: P&L e Rentabilidade ✅
 
 > **Princípio:** Adicionar gráficos de alto valor que respondem às Perguntas 1 e 2 ainda sem visualização.
 
 | # | Arquivo de Issue | Descrição | Status |
 | :--- | :--- | :--- | :---: |
 | 4.1 | [issue_041_bar_pl.md](./issue_041_bar_pl.md) | Criar `bar_lucro_prejuizo()` em `charts/bars.py` e integrar na view `carteira.py` | ✅ Concluído |
-| 4.2 | [issue_042_line_rentabilidade.md](./issue_042_line_rentabilidade.md) | Criar `line_rentabilidade_acumulada()` com linha de benchmark (CDI/IPCA) | ⏳ Backlog |
+| 4.2 | [issue_042_line_rentabilidade.md](./issue_042_line_rentabilidade.md) | Criar `line_rentabilidade_acumulada()` com linha de benchmark (CDI/IPCA) | ✅ Concluído |
 
 ---
 

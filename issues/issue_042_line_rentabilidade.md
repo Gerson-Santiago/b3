@@ -1,7 +1,7 @@
 # Issue 4.2 — Criar `line_rentabilidade_acumulada()` com Benchmark
-
+ 
 **Fase:** 4 — Novos Gráficos
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 6–8 horas
 **Dependência:** Fase 2 ✅ + Fase 3 ✅
 
@@ -19,12 +19,12 @@ A **Pergunta 1** ("Como meu patrimônio evoluiu?") está parcialmente respondida
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Função `line_rentabilidade_acumulada(curva_patrimonio, curva_referencia=None)` criada em `charts/lines.py`.
-- [ ] Linha de rentabilidade da carteira em `%` acumulado desde a data mais antiga.
-- [ ] Linha de benchmark opcional (CDI, IPCA ou Ibovespa), se `curva_referencia` for fornecida.
-- [ ] Hover mostra: `Data` e `Rentabilidade Acumulada (%)`.
-- [ ] Integrado na view `views/evolucao.py` como uma segunda seção abaixo do gráfico existente.
-- [ ] Teste unitário básico: DataFrame válido → `go.Figure` com ao menos 1 trace.
+- [x] Função `line_rentabilidade_acumulada(curva_patrimonio, curva_referencia=None)` criada em `charts/lines.py`.
+- [x] Linha de rentabilidade da carteira em `%` acumulado desde a data mais antiga.
+- [x] Linha de benchmark opcional (CDI, IPCA ou Ibovespa), se `curva_referencia` for fornecida.
+- [x] Hover mostra: `Data` e `Rentabilidade Acumulada (%)`.
+- [x] Integrado na view `views/evolucao.py` como uma segunda seção abaixo do gráfico existente.
+- [x] Teste unitário básico: DataFrame válido → `go.Figure` com ao menos 1 trace.
 
 ---
 
@@ -32,20 +32,20 @@ A **Pergunta 1** ("Como meu patrimônio evoluiu?") está parcialmente respondida
 
 ### Etapa A — Versão 1 (sem benchmark, apenas carteira)
 
-- [ ] Calcular `retorno_pct = (patrimonio / patrimonio[0] - 1) * 100` a partir de `curva_patrimonio["patrimonio_liquido"]`.
-- [ ] Criar `line_rentabilidade_acumulada(curva_patrimonio, curva_referencia=None)` em `lines.py`.
-- [ ] Integrar em `views/evolucao.py`: nova seção `"### Rentabilidade Acumulada da Carteira (%)"`.
-- [ ] Teste: cenário feliz + `curva_patrimonio` com apenas 1 ponto (não deve lançar exceção).
+- [x] Calcular `retorno_pct = (patrimonio / patrimonio[0] - 1) * 100` a partir de `curva_patrimonio["patrimonio_liquido"]`.
+- [x] Criar `line_rentabilidade_acumulada(curva_patrimonio, curva_referencia=None)` em `lines.py`.
+- [x] Integrar em `views/evolucao.py`: nova seção `"### Rentabilidade Acumulada da Carteira (%)"`.
+- [x] Teste: cenário feliz + `curva_patrimonio` com apenas 1 ponto (não deve lançar exceção).
 
 ### Etapa B — Versão 2 (com benchmark, negociável)
 
-- [ ] Definir estrutura de `curva_referencia`: `pd.DataFrame` com colunas `data` e `valor_referencia`.
-- [ ] Adicionar segunda trace ao gráfico quando `curva_referencia` for fornecida.
-- [ ] Decidir: o benchmark vem de arquivo local? De API? (Esta decisão pode ser uma issue separada de `metrics/`).
+- [x] Definir estrutura de `curva_referencia`: `pd.DataFrame` com colunas `data` e `valor_referencia` (ou `retorno_pct`).
+- [x] Adicionar segunda trace ao gráfico quando `curva_referencia` for fornecida.
+- [x] Decidir: o benchmark vem de arquivo local? De API? (Esta decisão pode ser uma issue separada de `metrics/`).
 
 ### Etapa C — Exportar
 
-- [ ] Adicionar `line_rentabilidade_acumulada` em `charts/__init__.py` e `__all__`.
+- [x] Adicionar `line_rentabilidade_acumulada` em `charts/__init__.py` e `__all__`.
 
 ---
 

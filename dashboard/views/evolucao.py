@@ -4,10 +4,16 @@ from __future__ import annotations
 import streamlit as st
 
 try:
-    from dashboard.charts import line_comparativo_patrimonio_e_aportes
+    from dashboard.charts import (
+        line_comparativo_patrimonio_e_aportes,
+        line_rentabilidade_acumulada,
+    )
     from dashboard.state import DashboardState
 except ImportError:  # pragma: no cover
-    from charts import line_comparativo_patrimonio_e_aportes
+    from charts import (
+        line_comparativo_patrimonio_e_aportes,
+        line_rentabilidade_acumulada,
+    )
     from state import DashboardState
 
 # Opções de produto disponíveis no seletor
@@ -51,6 +57,12 @@ def render(state: DashboardState) -> None:
             evol["curva_aportes"],
             evol["curva_patrimonio"],
         ),
+        width="stretch",
+    )
+
+    st.markdown("### Rentabilidade Acumulada da Carteira (%)")
+    st.plotly_chart(
+        line_rentabilidade_acumulada(evol["curva_patrimonio"]),
         width="stretch",
     )
 
