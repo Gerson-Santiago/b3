@@ -15,12 +15,16 @@ try:
     from dashboard.metrics.dy import compute_dy_metrics
     from dashboard.metrics.evolucao import compute_evolucao_separada
     from dashboard.metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
+    from dashboard.metrics.preco_medio import compute_preco_medio
     from dashboard.metrics.proventos import compute_proventos
+    from dashboard.models.ativos import renomear_ativo
 except ImportError:  # pragma: no cover
     from metrics.dy import compute_dy_metrics
     from metrics.evolucao import compute_evolucao_separada
     from metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
+    from metrics.preco_medio import compute_preco_medio
     from metrics.proventos import compute_proventos
+    from models.ativos import renomear_ativo
 
 # Categorias que compõem "Bolsa de Valores" no gráfico agrupado
 _CATEGORIAS_BOLSA = {"AÇÕES", "BDR"}
@@ -43,6 +47,39 @@ def _agrupar_bolsa(pos_categoria: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def _enriquecer_pos_cards(pos: pd.DataFrame, pm_df: pd.DataFrame) -> pd.DataFrame:
+    """Junta pos (valor atual do snapshot) com preco_medio/custo_total e deriva pl/variacao_pct.
+
+    O join é feito via ticker normalizado (renomear_ativo) porque pos.produto contém
+    o nome completo ("PETR4 - PETROBRAS") enquanto pm_df.produto contém o ticker
+    ("PETR4") — mesma lógica de normalização de eventos.py.
+    """
+    if pos.empty:
+        return pd.DataFrame(columns=["produto", "categoria", "quantidade", "valor_abs",
+                                     "preco_medio", "custo_total", "pl", "variacao_pct"])
+
+    cards = pos[["produto", "categoria", "quantidade", "valor_abs"]].copy()
+
+    if not pm_df.empty:
+        # Chave de join: ticker normalizado dos dois lados
+        cards["_ticker"] = cards["produto"].apply(lambda p: renomear_ativo(p) or str(p).strip())
+        pm = pm_df[["produto", "preco_medio", "custo_total"]].copy()
+        pm = pm.rename(columns={"produto": "_ticker"})
+        cards = cards.merge(pm, on="_ticker", how="left").drop(columns=["_ticker"])
+    else:
+        cards["preco_medio"] = float("nan")
+        cards["custo_total"] = float("nan")
+
+    cards["preco_medio"] = pd.to_numeric(cards["preco_medio"], errors="coerce").fillna(0.0)
+    cards["custo_total"] = pd.to_numeric(cards["custo_total"], errors="coerce").fillna(0.0)
+    cards["pl"] = (cards["valor_abs"] - cards["custo_total"]).round(2)
+    cards["variacao_pct"] = cards.apply(
+        lambda r: round((r["pl"] / r["custo_total"]) * 100, 2) if r["custo_total"] else 0.0,
+        axis=1,
+    )
+    return cards.sort_values("valor_abs", ascending=False).reset_index(drop=True)
+
+
 @dataclass
 class DashboardState:
     """Contém todos os dados derivados usados pelas views.
@@ -56,6 +93,8 @@ class DashboardState:
     pos_categoria: pd.DataFrame
     # Alocação agrupada (BDR + AÇÕES → "Bolsa de Valores") — SSOT
     pos_categoria_agrupada: pd.DataFrame
+    # pos enriquecida com preco_medio, custo_total, pl e variacao_pct
+    pos_cards: pd.DataFrame
     # DataFrames filtrados preservados para as views
     mov_filtered: pd.DataFrame
     pos_filtered: pd.DataFrame
@@ -117,6 +156,10 @@ class DashboardState:
 
         pos_categoria_agrupada = _agrupar_bolsa(pos_categoria)
 
+        # pos_cards: enriquece pos com preco_medio/custo_total/pl/variacao_pct
+        pm_df = compute_preco_medio(mov_filtered)
+        pos_cards = _enriquecer_pos_cards(pos, pm_df)
+
         proventos = compute_proventos(mov_filtered)
 
         pos_frames = [pos_df] if not pos_df.empty else []
@@ -157,6 +200,7 @@ class DashboardState:
             pos=pos,
             pos_categoria=pos_categoria,
             pos_categoria_agrupada=pos_categoria_agrupada,
+            pos_cards=pos_cards,
             mov_filtered=mov_filtered,
             pos_filtered=pos_filtered,
             proventos=proventos,

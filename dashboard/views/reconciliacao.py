@@ -1,4 +1,4 @@
-"""Aba ⚖️ Reconciliação B3."""
+"""Aba Reconciliação B3."""
 from __future__ import annotations
 
 import streamlit as st
@@ -36,6 +36,6 @@ def render(state: DashboardState, pos_df_full, end_date) -> None:
 
     divergentes = tabela[tabela["delta"].abs() > 1e-4]
     if divergentes.empty:
-        st.success("✅ Todos os ativos auditados estão 100% conciliados com o extrato da B3.")
+        st.success("Todos os ativos auditados estão 100% conciliados com o extrato da B3.")
     else:
-        st.warning(f"⚠️ {len(divergentes)} ativo(s) com divergência entre movimentações e posição.")
+        st.warning(f"{len(divergentes)} ativo(s) com divergência entre movimentações e posição.")

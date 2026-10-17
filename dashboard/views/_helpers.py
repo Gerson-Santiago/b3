@@ -8,6 +8,9 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+# Quantas colunas de cards por linha
+_CARDS_POR_LINHA = 3
+
 
 def render_section(
     df: pd.DataFrame,
@@ -34,3 +37,85 @@ def render_section(
         st.info(msg_vazia)
     else:
         st.dataframe(df, width="stretch")
+
+
+def _render_card(row: pd.Series) -> None:
+    """Renderiza um único card de ativo dentro de um st.container."""
+    produto = str(row.get("produto", "—"))
+    categoria = str(row.get("categoria", ""))
+    quantidade = row.get("quantidade", 0)
+    valor_abs = float(row.get("valor_abs", 0))
+    preco_medio = float(row.get("preco_medio", 0))
+    custo_total = float(row.get("custo_total", 0))
+    variacao_pct = float(row.get("variacao_pct", 0))
+
+    if custo_total > 0:
+        if variacao_pct > 0:
+            delta_val = f"+{variacao_pct:.2f}%"
+            delta_color = "normal"
+        elif variacao_pct < 0:
+            delta_val = f"{variacao_pct:.2f}%"
+            delta_color = "normal"
+        else:
+            delta_val = "0.00%"
+            delta_color = "off"
+    else:
+        delta_val = "0.00%"
+        delta_color = "off"
+
+    with st.container(border=True):
+        # Cabeçalho: ticker + badge categoria
+        st.markdown(
+            f"**{produto}** &nbsp; "
+            f"<span style='font-size:0.75rem;background:#e2e8f0;"
+            f"border-radius:4px;padding:1px 6px;color:#475569'>{categoria}</span>",
+            unsafe_allow_html=True,
+        )
+        # Métricas em 2 colunas
+        c1, c2 = st.columns(2)
+        c1.metric("Quantidade", f"{quantidade:,.0f}")
+        c2.metric("Preço Médio", f"R$ {preco_medio:,.2f}" if preco_medio else "—")
+        c3, c4 = st.columns(2)
+        c3.metric("Custo Total", f"R$ {custo_total:,.2f}" if custo_total else "—")
+        c4.metric(
+            "Valor Atual (snapshot)",
+            f"R$ {valor_abs:,.2f}",
+            delta=delta_val,
+            delta_color=delta_color,
+        )
+
+
+def render_cards_grid(
+    df: pd.DataFrame,
+    titulo: str,
+    msg_vazia: str,
+    *,
+    nivel: str = "####",
+    cards_por_linha: int = _CARDS_POR_LINHA,
+) -> None:
+    """Renderiza uma grade de cards de ativos.
+
+    Espera as colunas produzidas por ``_enriquecer_pos_cards`` em state.py:
+    produto, categoria, quantidade, valor_abs, preco_medio, custo_total, pl, variacao_pct.
+
+    Para DataFrames sem essas colunas extras (ex.: Tesouro sem PM), exibe
+    os dados disponíveis sem quebrar.
+    """
+    st.markdown(f"{nivel} {titulo}")
+    if df.empty:
+        st.info(msg_vazia)
+        return
+
+    # Delta sem ícone (nulo/neutro) fica em azul
+    st.markdown(
+        "<style>div[data-testid='stMetricDelta']:not(:has(svg)) { color: #2563eb !important; }</style>",
+        unsafe_allow_html=True,
+    )
+
+    rows = [row for _, row in df.iterrows()]
+    for i in range(0, len(rows), cards_por_linha):
+        bloco = rows[i : i + cards_por_linha]
+        cols = st.columns(len(bloco))
+        for col, row in zip(cols, bloco):
+            with col:
+                _render_card(row)

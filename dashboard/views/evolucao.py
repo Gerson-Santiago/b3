@@ -1,4 +1,4 @@
-"""Aba 📈 Evolução & Aportes."""
+"""Aba Evolução & Aportes."""
 from __future__ import annotations
 
 import streamlit as st
@@ -12,16 +12,16 @@ except ImportError:  # pragma: no cover
 
 # Opções de produto disponíveis no seletor
 _OPCOES_PRODUTO = [
-    "📈 Bolsa de Valores (Ações & BDR)",
-    "🏦 Tesouro Direto",
-    "🗂️ Consolidado",
+    "Bolsa de Valores (Ações & BDR)",
+    "Tesouro Direto",
+    "Consolidado",
 ]
 
 # Mapeamento opção → chave no state
 _MAP_EVOL = {
-    "📈 Bolsa de Valores (Ações & BDR)": "bolsa",
-    "🏦 Tesouro Direto": "tesouro",
-    "🗂️ Consolidado": "consolidado",
+    "Bolsa de Valores (Ações & BDR)": "bolsa",
+    "Tesouro Direto": "tesouro",
+    "Consolidado": "consolidado",
 }
 
 # Mapeamento chave → atributo do DashboardState

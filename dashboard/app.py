@@ -157,7 +157,7 @@ def main():
     col3.metric("Ativos em Custódia", f"{state.pos['produto'].nunique():,}" if not state.pos.empty else "0")
 
     tab_carteira, tab_proventos, tab_evolucao, tab_reconciliacao = st.tabs(
-        ["📊 Carteira & Alocação", "💰 Proventos & Renda", "📈 Evolução & Aportes", "⚖️ Reconciliação B3"]
+        ["Carteira & Alocação", "Proventos & Renda", "Evolução & Aportes", "Reconciliação B3"]
     )
 
     with tab_carteira:
