@@ -9,7 +9,7 @@ from dashboard.loaders.movimentacao import read_movimentacao_file
 from dashboard.loaders.posicao import read_posicao_file
 from dashboard.metrics.preco_medio import compute_preco_medio
 from dashboard.metrics.reconciliacao import comparar, data_do_arquivo, quantidade_ate
-from dashboard.models.ativos import ticker
+from dashboard.models.ativos import resolver_ativo
 
 
 @pytest.mark.parametrize(
@@ -22,7 +22,7 @@ from dashboard.models.ativos import ticker
     ],
 )
 def test_ticker_normaliza_variacoes_de_nome(valor, esperado):
-    assert ticker(valor) == esperado
+    assert resolver_ativo(valor).codigo == esperado
 
 
 def test_read_posicao_fixture_keeps_decimal_quantities_for_tesouro_and_itsa():
@@ -95,8 +95,8 @@ def test_nubank_migration_rows_are_present_in_fixture_and_renamed_to_roxo34():
         "NUBR35 - NU HOLDINGS LTD.",
         "ROXO34 - NU HOLDINGS",
     ]
-    # Com o catálogo único, ticker() retorna o código canônico: NUBR33 e NUBR35 → ROXO34
-    assert set(rows["produto"].map(ticker)) == {"ROXO34"}
+    # Com o catálogo único, resolver_ativo() retorna o código canônico: NUBR33 e NUBR35 → ROXO34
+    assert set(rows["produto"].map(lambda p: resolver_ativo(p).codigo)) == {"ROXO34"}
 
 
 
@@ -125,7 +125,7 @@ def test_quantidade_ate_matches_expected_real_fixture_snapshot_values():
 def test_compute_preco_medio_uses_nan_when_cost_is_unknown_for_roxo34_and_matches_quantity_ate():
     mov = read_movimentacao_file(Path(__file__).resolve().parent / "fixtures" / "movimentacao_7_ativos.xlsx")
     metricas = compute_preco_medio(mov).copy()
-    metricas["produto_norm"] = metricas["produto"].map(lambda v: ticker(v))
+    metricas["produto_norm"] = metricas["produto"].map(lambda v: resolver_ativo(v).codigo)
 
     roxo = metricas[metricas["produto_norm"] == "ROXO34"].iloc[0]
     assert pd.isna(roxo["preco_medio"]) or roxo["preco_medio"] == pytest.approx(0.0, abs=1e-9) is False

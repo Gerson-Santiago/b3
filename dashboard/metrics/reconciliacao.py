@@ -5,17 +5,13 @@ from typing import Any
 
 import pandas as pd
 
-from dashboard.models.ativos import renomear_ativo
+from dashboard.models.ativos import resolver_ativo_seguro
 from dashboard.models.eventos import aplicar_eventos_ordenados
-
-
-def _normalizar_ativo(valor: Any) -> str:
-    return renomear_ativo(valor)
 
 
 def _normalizar_qtd_df(df: Any, *, nome: str = "qtd") -> pd.DataFrame:
     if df is None:
-        return pd.DataFrame(columns=["produto", "quantidade"])
+        return pd.DataFrame(columns=["ativo_id", "ativo", "quantidade"])
 
     if isinstance(df, dict):
         payload = pd.DataFrame({"produto": list(df.keys()), "quantidade": list(df.values())})
@@ -27,13 +23,14 @@ def _normalizar_qtd_df(df: Any, *, nome: str = "qtd") -> pd.DataFrame:
     else:
         raise TypeError(f"Tipo não suportado para {nome}: {type(df)!r}")
 
-    if "produto" not in payload.columns:
-        if "ativo" in payload.columns:
-            payload = payload.rename(columns={"ativo": "produto"})
-        elif "ticker" in payload.columns:
-            payload = payload.rename(columns={"ticker": "produto"})
-        else:
-            raise ValueError(f"DataFrame de {nome} sem coluna 'produto' ou 'ativo'.")
+    col_prod = None
+    for candidate in ["ativo_id", "produto", "ativo", "ticker"]:
+        if candidate in payload.columns:
+            col_prod = candidate
+            break
+
+    if col_prod is None:
+        raise ValueError(f"DataFrame de {nome} sem coluna 'produto' ou 'ativo'.")
 
     if "quantidade" not in payload.columns:
         for coluna in ["qtd", "qtd_liquida", "qtd_pos", "posicao"]:
@@ -41,10 +38,12 @@ def _normalizar_qtd_df(df: Any, *, nome: str = "qtd") -> pd.DataFrame:
                 payload = payload.rename(columns={coluna: "quantidade"})
                 break
 
-    payload = payload[["produto", "quantidade"]].copy()
-    payload["produto"] = payload["produto"].map(_normalizar_ativo)
+    if "ativo_id" not in payload.columns:
+        payload["ativo_id"] = payload[col_prod].map(resolver_ativo_seguro)
+
+    payload["ativo"] = payload["ativo_id"].apply(lambda a: a.codigo if hasattr(a, "codigo") else str(a))
     payload["quantidade"] = pd.to_numeric(payload["quantidade"], errors="coerce").fillna(0.0)
-    return payload
+    return payload[["ativo_id", "ativo", "quantidade"]].copy()
 
 
 def quantidade_ate(mov_df, data_corte, inclusive: bool = True, aplicar_define: bool = True):
@@ -64,27 +63,26 @@ def quantidade_ate(mov_df, data_corte, inclusive: bool = True, aplicar_define: b
     if resumo.empty:
         return {}
 
-    total = resumo[["produto", "quantidade"]].copy()
-    total["produto"] = total["produto"].map(_normalizar_ativo)
-    total = total.groupby("produto", as_index=False)["quantidade"].sum()
-    return dict(zip(total["produto"], total["quantidade"]))
+    total = resumo.groupby("ativo_id", as_index=False)["quantidade"].sum()
+    return {
+        aid.codigo if hasattr(aid, "codigo") else str(aid): qtd
+        for aid, qtd in zip(total["ativo_id"], total["quantidade"])
+    }
 
 
 def comparar(qtd_mov, pos_df, mov_df=None, data_corte=None):
     mov = _normalizar_qtd_df(qtd_mov, nome="movimentação")
     pos = _normalizar_qtd_df(pos_df, nome="posição")
 
-    mov_agg = mov.groupby("produto", as_index=False)["quantidade"].sum()
-    pos_agg = pos.groupby("produto", as_index=False)["quantidade"].sum()
-    tabela = mov_agg.merge(pos_agg, on="produto", how="outer")
+    mov_agg = mov.groupby("ativo_id", as_index=False)["quantidade"].sum()
+    pos_agg = pos.groupby("ativo_id", as_index=False)["quantidade"].sum()
+    tabela = mov_agg.merge(pos_agg, on="ativo_id", how="outer")
     tabela = tabela.rename(columns={"quantidade_x": "qtd_mov", "quantidade_y": "qtd_pos"})
-    tabela["qtd_mov"] = tabela["qtd_mov"].fillna(0.0)
-    tabela["qtd_pos"] = tabela["qtd_pos"].fillna(0.0)
-    tabela["delta"] = tabela["qtd_pos"] - tabela["qtd_mov"]
-    tabela = tabela[["produto", "qtd_mov", "qtd_pos", "delta"]].rename(columns={"produto": "ativo"})
     tabela["qtd_mov"] = pd.to_numeric(tabela["qtd_mov"], errors="coerce").fillna(0.0)
     tabela["qtd_pos"] = pd.to_numeric(tabela["qtd_pos"], errors="coerce").fillna(0.0)
-    tabela["delta"] = pd.to_numeric(tabela["delta"], errors="coerce").fillna(0.0)
+    tabela["delta"] = tabela["qtd_pos"] - tabela["qtd_mov"]
+    tabela["ativo"] = tabela["ativo_id"].apply(lambda a: a.codigo if hasattr(a, "codigo") else str(a))
+    tabela = tabela[["ativo", "qtd_mov", "qtd_pos", "delta"]].copy()
 
     if mov_df is not None:
         corte = data_corte if data_corte is not None else "2099-12-31"

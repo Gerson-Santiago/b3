@@ -8,7 +8,7 @@ from dashboard.loaders.movimentacao import read_movimentacao_file
 from dashboard.loaders.posicao import read_posicao_file
 from dashboard.metrics.preco_medio import compute_preco_medio
 from dashboard.metrics.reconciliacao import quantidade_ate, comparar
-from dashboard.models.ativos import ticker, renomear_ativo
+from dashboard.models.ativos import resolver_ativo
 from dashboard.metrics.position import obter_categoria_ativo, mapear_categorias_posicao, compute_position_categoria
 from dashboard.metrics.dy import compute_dy_metrics
 from dashboard.metrics.evolucao import compute_evolucao_separada
@@ -32,7 +32,7 @@ def test_tdd_quantidade_ate_petr4_vale3_e_roxo34_valores_exatos():
 def test_tdd_migracao_nubank_fechamento_20_cotas_sem_somar_atualizacao():
     mov = read_movimentacao_file(MOV_FIXTURE)
     metricas = compute_preco_medio(mov)
-    metricas["ticker"] = metricas["produto"].map(ticker)
+    metricas["ticker"] = metricas["produto"].map(lambda p: resolver_ativo(p).codigo)
     
     roxo = metricas[metricas["ticker"] == "ROXO34"]
     assert not roxo.empty

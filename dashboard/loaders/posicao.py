@@ -23,7 +23,7 @@ def _categorizar_sheet(sheet_name: str) -> str:
     return "AÇÕES"
 
 
-def read_posicao_excel(file_source: Union[str, Path, BytesIO, object]):
+def read_posicao_excel(file_source: Union[str, Path, BytesIO, object], qualidade: Any = None):
     xls = pd.ExcelFile(file_source, engine="openpyxl")
     frames = []
 
@@ -76,24 +76,44 @@ def read_posicao_excel(file_source: Union[str, Path, BytesIO, object]):
     if not frames:
         raise ValueError("Nenhuma aba com o formato de posição foi lida corretamente.")
 
-    return pd.concat(frames, ignore_index=True)
+    concatenated = pd.concat(frames, ignore_index=True)
+    from dashboard.models.ativos import anotar_ativos
+    annotated = anotar_ativos(concatenated, qualidade)
+
+    if qualidade is not None and "ativo_id" in annotated.columns:
+        from dashboard.models.qualidade import Aviso
+
+        for _, row in annotated.iterrows():
+            aid = row.get("ativo_id")
+            cat = row.get("categoria")
+            if aid is not None and hasattr(aid, "classe") and cat is not None:
+                if aid.classe != cat:
+                    qualidade.add(
+                        Aviso(
+                            tipo="CLASSE_DIVERGENTE",
+                            produto=str(row.get("produto") or ""),
+                            detalhe=f"Aba {cat} difere da classe do ativo {aid.classe}",
+                        )
+                    )
+
+    return annotated
 
 
-def read_posicao_file(file_source: Union[str, Path, BytesIO, object]):
+def read_posicao_file(file_source: Union[str, Path, BytesIO, object], qualidade: Any = None):
     if file_source is None:
         raise ValueError("Arquivo de posição não informado.")
 
     if hasattr(file_source, "read"):
         name = str(getattr(file_source, "name", "")).lower()
         if name.endswith((".xlsx", ".xls")):
-            return read_posicao_excel(file_source)
+            return read_posicao_excel(file_source, qualidade=qualidade)
         return pd.DataFrame()
 
     path = Path(file_source)
     if path.suffix.lower() in {".xlsx", ".xls"}:
-        return read_posicao_excel(path)
+        return read_posicao_excel(path, qualidade=qualidade)
     return pd.DataFrame()
 
 
-def load_posicao(file_source):
-    return read_posicao_file(file_source)
+def load_posicao(file_source, qualidade: Any = None):
+    return read_posicao_file(file_source, qualidade=qualidade)

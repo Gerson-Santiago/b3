@@ -78,12 +78,15 @@ def _normalize_movimentacao_df(df):
     return df
 
 
-def read_movimentacao_csv(file_source: Union[str, Path, BytesIO, object]):
+def read_movimentacao_csv(file_source: Union[str, Path, BytesIO, object], qualidade: Any = None):
     df = _read_csv_with_encodings(file_source)
-    return _normalize_movimentacao_df(df)
+    normalized = _normalize_movimentacao_df(df)
+    from dashboard.models.ativos import anotar_ativos
+
+    return anotar_ativos(normalized, qualidade)
 
 
-def read_movimentacao_excel(file_source: Union[str, Path, BytesIO, object]):
+def read_movimentacao_excel(file_source: Union[str, Path, BytesIO, object], qualidade: Any = None):
     xls = pd.ExcelFile(file_source, engine="openpyxl")
     frames = []
 
@@ -101,24 +104,27 @@ def read_movimentacao_excel(file_source: Union[str, Path, BytesIO, object]):
     if not frames:
         raise ValueError("Nenhuma aba com o formato de movimentação foi lida corretamente.")
 
-    return pd.concat(frames, ignore_index=True)
+    concatenated = pd.concat(frames, ignore_index=True)
+    from dashboard.models.ativos import anotar_ativos
+
+    return anotar_ativos(concatenated, qualidade)
 
 
-def read_movimentacao_file(file_source: Union[str, Path, BytesIO, object]):
+def read_movimentacao_file(file_source: Union[str, Path, BytesIO, object], qualidade: Any = None):
     if file_source is None:
         raise ValueError("Arquivo de movimentação não informado.")
 
     if hasattr(file_source, "read"):
         name = str(getattr(file_source, "name", "")).lower()
         if name.endswith((".xlsx", ".xls")):
-            return read_movimentacao_excel(file_source)
-        return read_movimentacao_csv(file_source)
+            return read_movimentacao_excel(file_source, qualidade=qualidade)
+        return read_movimentacao_csv(file_source, qualidade=qualidade)
 
     path = Path(file_source)
     if path.suffix.lower() in {".xlsx", ".xls"}:
-        return read_movimentacao_excel(path)
-    return read_movimentacao_csv(path)
+        return read_movimentacao_excel(path, qualidade=qualidade)
+    return read_movimentacao_csv(path, qualidade=qualidade)
 
 
-def load_movimentacao(file_source):
-    return read_movimentacao_file(file_source)
+def load_movimentacao(file_source, qualidade: Any = None):
+    return read_movimentacao_file(file_source, qualidade=qualidade)

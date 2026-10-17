@@ -1,0 +1,106 @@
+Date : 2026-10-17 11:35:09
+Directory : c:\Users\gerso\OneDrive\Documentos\B3
+Total : 63 files,  4358 codes, 401 comments, 1130 blanks, all 5889 lines
+
+Languages
++------------------+------------+------------+------------+------------+------------+
+| language         | files      | code       | comment    | blank      | total      |
++------------------+------------+------------+------------+------------+------------+
+| Python           |         55 |      4,232 |        401 |      1,080 |      5,713 |
+| Markdown         |          4 |        105 |          0 |         46 |        151 |
+| JSON             |          1 |          9 |          0 |          1 |         10 |
+| pip requirements |          2 |          8 |          0 |          2 |         10 |
+| Batch            |          1 |          4 |          0 |          1 |          5 |
++------------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                             | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                |         63 |      4,358 |        401 |      1,130 |      5,889 |
+| . (Files)                                                                        |          3 |         25 |          0 |         11 |         36 |
+| dashboard                                                                        |         41 |      2,318 |        239 |        581 |      3,138 |
+| dashboard (Files)                                                                |          8 |        448 |         99 |        118 |        665 |
+| dashboard\aliases                                                                |          4 |         48 |          0 |         17 |         65 |
+| dashboard\charts                                                                 |          7 |        302 |         23 |         58 |        383 |
+| dashboard\loaders                                                                |          4 |        183 |         31 |         69 |        283 |
+| dashboard\metrics                                                                |          7 |        391 |          7 |        124 |        522 |
+| dashboard\models                                                                 |          5 |        697 |         26 |        140 |        863 |
+| dashboard\views                                                                  |          6 |        249 |         53 |         55 |        357 |
+| doc                                                                              |          3 |         88 |          0 |         37 |        125 |
+| doc\schema_db_xlsx                                                               |          3 |         88 |          0 |         37 |        125 |
+| scripts                                                                          |          2 |        281 |         17 |         62 |        360 |
+| tests                                                                            |         14 |      1,646 |        145 |        439 |      2,230 |
+| tests (Files)                                                                    |         13 |      1,637 |        145 |        438 |      2,220 |
+| tests\fixtures                                                                   |          1 |          9 |          0 |          1 |         10 |
++----------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| filename                                                                         | language         | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| c:\Users\gerso\OneDrive\Documentos\B3\README.md                                  | Markdown         |         17 |          0 |          9 |         26 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\__init__.py                      | Python           |          0 |          1 |          1 |          2 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\aliases\__init__.py              | Python           |          3 |          0 |          2 |          5 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\aliases\common.py                | Python           |         13 |          0 |          7 |         20 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\aliases\movimentacao.py          | Python           |         12 |          0 |          4 |         16 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\aliases\posicao.py               | Python           |         20 |          0 |          4 |         24 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\app.py                           | Python           |        125 |         19 |         39 |        183 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\charts\__init__.py               | Python           |         19 |          0 |          2 |         21 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\charts\bars.py                   | Python           |         30 |          0 |          6 |         36 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\charts\base.py                   | Python           |         42 |          0 |          8 |         50 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\charts\defaults.py               | Python           |         30 |         21 |         10 |         61 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\charts\lines.py                  | Python           |         54 |          0 |          9 |         63 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\charts\pie.py                    | Python           |         48 |          0 |          8 |         56 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\charts\treemap.py                | Python           |         79 |          2 |         15 |         96 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\columns.py                       | Python           |         17 |          0 |          4 |         21 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\filters.py                       | Python           |         24 |         20 |         10 |         54 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\loader.py                        | Python           |         29 |          0 |          8 |         37 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\loaders\__init__.py              | Python           |          0 |          1 |          1 |          2 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\loaders\default_loader.py        | Python           |         19 |         30 |          7 |         56 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\loaders\movimentacao.py          | Python           |         93 |          0 |         32 |        125 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\loaders\posicao.py               | Python           |         71 |          0 |         29 |        100 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\metrics\__init__.py              | Python           |         24 |          0 |          2 |         26 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\metrics\dy.py                    | Python           |         77 |          5 |         18 |        100 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\metrics\evolucao.py              | Python           |         66 |          2 |         21 |         89 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\metrics\position.py              | Python           |         95 |          0 |         41 |        136 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\metrics\preco_medio.py           | Python           |         27 |          0 |         11 |         38 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\metrics\proventos.py             | Python           |         18 |          0 |          7 |         25 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\metrics\reconciliacao.py         | Python           |         84 |          0 |         24 |        108 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\models\__init__.py               | Python           |         29 |          0 |          2 |         31 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\models\ativos.py                 | Python           |        352 |         25 |         48 |        425 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\models\eventos.py                | Python           |        196 |          1 |         50 |        247 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\models\movimentacao.py           | Python           |         87 |          0 |         28 |        115 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\models\qualidade.py              | Python           |         33 |          0 |         12 |         45 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\requirements.txt                 | pip requirements |          4 |          0 |          1 |          5 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\state.py                         | Python           |        159 |         59 |         30 |        248 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\utils.py                         | Python           |         90 |          0 |         25 |        115 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\views\__init__.py                | Python           |          0 |          1 |          1 |          2 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\views\_helpers.py                | Python           |         79 |         31 |         13 |        123 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\views\carteira.py                | Python           |         81 |          2 |         15 |         98 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\views\evolucao.py                | Python           |         43 |          5 |         12 |         60 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\views\proventos.py               | Python           |         24 |          2 |          6 |         32 |
+| c:\Users\gerso\OneDrive\Documentos\B3\dashboard\views\reconciliacao.py           | Python           |         22 |         12 |          8 |         42 |
+| c:\Users\gerso\OneDrive\Documentos\B3\doc\schema_db_xlsx\area_do_investido.md    | Markdown         |          9 |          0 |          7 |         16 |
+| c:\Users\gerso\OneDrive\Documentos\B3\doc\schema_db_xlsx\movimentacao_b3_xlsx.md | Markdown         |         34 |          0 |         16 |         50 |
+| c:\Users\gerso\OneDrive\Documentos\B3\doc\schema_db_xlsx\posicao_b3_xlsx.md      | Markdown         |         45 |          0 |         14 |         59 |
+| c:\Users\gerso\OneDrive\Documentos\B3\requirements.txt                           | pip requirements |          4 |          0 |          1 |          5 |
+| c:\Users\gerso\OneDrive\Documentos\B3\run_dashboard.bat                          | Batch            |          4 |          0 |          1 |          5 |
+| c:\Users\gerso\OneDrive\Documentos\B3\scripts\diagnostico_posicao.py             | Python           |         45 |          0 |         12 |         57 |
+| c:\Users\gerso\OneDrive\Documentos\B3\scripts\perfil_movimentacao.py             | Python           |        236 |         17 |         50 |        303 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\fixtures\ativos_7_preco_medio.json   | JSON             |          9 |          0 |          1 |         10 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_ativo_id.py                     | Python           |        180 |         11 |         45 |        236 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_b3_architecture.py              | Python           |        317 |          0 |         46 |        363 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_cards_e_evol_produto.py         | Python           |        211 |         32 |         49 |        292 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_default_loader.py               | Python           |         60 |          4 |         26 |         90 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_etapa1_tdd.py                   | Python           |         59 |          3 |         25 |         87 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_eventos_regressao.py            | Python           |         41 |          0 |         13 |         54 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_file_selection.py               | Python           |         62 |          0 |         20 |         82 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_filters.py                      | Python           |        116 |         17 |         33 |        166 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_position_classification.py      | Python           |         24 |          1 |          7 |         32 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_reconciliacao.py                | Python           |        125 |          6 |         56 |        187 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_state.py                        | Python           |        173 |         30 |         47 |        250 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_treemap.py                      | Python           |         50 |          1 |         17 |         68 |
+| c:\Users\gerso\OneDrive\Documentos\B3\tests\test_xlsx_priority.py                | Python           |        219 |         40 |         54 |        313 |
+| Total                                                                            |                  |      4,358 |        401 |      1,130 |      5,889 |
++----------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+

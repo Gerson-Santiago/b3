@@ -13,7 +13,6 @@ import pandas as pd
 import pytest
 
 from dashboard.state import DashboardState, _enriquecer_pos_cards
-from dashboard.models.ativos import renomear_ativo
 
 
 # ---------------------------------------------------------------------------
@@ -132,7 +131,7 @@ class TestEnriquecerPosCards:
     def test_join_via_ticker_quando_pos_tem_nome_completo(self):
         """Bug corrigido: pos usa nome completo, pm_df usa ticker — join deve casar."""
         pos = pd.DataFrame({
-            "produto": ["PETR4 - PETROBRAS"],
+            "produto": ["PETR4 - PETROLEO BRASILEIRO S/A - PETROBRAS"],
             "categoria": ["AÇÕES"],
             "quantidade": [10.0],
             "valor_abs": [600.0],

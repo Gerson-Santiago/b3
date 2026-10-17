@@ -1,10 +1,18 @@
 from datetime import timedelta
 import pandas as pd
 
-from dashboard.models.ativos import renomear_ativo, ticker
-from dashboard.models.eventos import efeito_movimentacao
 from dashboard.metrics.preco_medio import compute_preco_medio
+from dashboard.models.ativos import resolver_ativo_seguro
+from dashboard.models.eventos import efeito_movimentacao
 from .position import compute_position
+
+
+def _extrair_codigo_ativo(df: pd.DataFrame) -> pd.Series:
+    if "ativo" in df.columns:
+        return df["ativo"]
+    if "ativo_id" in df.columns:
+        return df["ativo_id"].apply(lambda a: a.codigo if hasattr(a, "codigo") else str(a))
+    return df["produto"].map(lambda p: resolver_ativo_seguro(p).codigo)
 
 
 def compute_dy_metrics(mov_df: pd.DataFrame, pos_df: pd.DataFrame | None = None, data_referencia: object = None) -> pd.DataFrame:
@@ -38,12 +46,12 @@ def compute_dy_metrics(mov_df: pd.DataFrame, pos_df: pd.DataFrame | None = None,
         )
     ].copy()
 
-    proventos["ticker"] = proventos["produto"].map(lambda p: renomear_ativo(p) or ticker(p))
+    proventos["ticker"] = _extrair_codigo_ativo(proventos)
     prov_12m = proventos.groupby("ticker", as_index=False)["valor_liquido"].sum().rename(columns={"valor_liquido": "proventos_12m"})
 
     # Custo total calculado via preco_medio
     pm_df = compute_preco_medio(df)
-    pm_df["ticker"] = pm_df["produto"].map(lambda p: renomear_ativo(p) or ticker(p))
+    pm_df["ticker"] = _extrair_codigo_ativo(pm_df)
     custos = pm_df.groupby("ticker", as_index=False).agg(
         quantidade=("quantidade", "sum"),
         custo_total=("custo_total", "sum"),
@@ -52,7 +60,7 @@ def compute_dy_metrics(mov_df: pd.DataFrame, pos_df: pd.DataFrame | None = None,
     # Valor atual vindo da posição real se disponível, senão compute_position(df) ou custo
     if pos_df is not None and not pos_df.empty:
         pos_base = pos_df.copy()
-        pos_base["ticker"] = pos_base["produto"].map(lambda p: renomear_ativo(p) or ticker(p))
+        pos_base["ticker"] = _extrair_codigo_ativo(pos_base)
         col_val = next((c for c in ["valor_atualizado", "valor_operacao", "valor_liquido", "valor"] if c in pos_base.columns), None)
         if col_val is not None:
             val_pos = pos_base.groupby("ticker", as_index=False)[col_val].sum().rename(columns={col_val: "valor_atual"})
@@ -61,7 +69,7 @@ def compute_dy_metrics(mov_df: pd.DataFrame, pos_df: pd.DataFrame | None = None,
     else:
         pos_mov = compute_position(df)
         if not pos_mov.empty:
-            pos_mov["ticker"] = pos_mov["produto"].map(lambda p: renomear_ativo(p) or ticker(p))
+            pos_mov["ticker"] = _extrair_codigo_ativo(pos_mov)
             val_pos = pos_mov.groupby("ticker", as_index=False)["valor_abs"].sum().rename(columns={"valor_abs": "valor_atual"})
         else:
             val_pos = pd.DataFrame(columns=["ticker", "valor_atual"])

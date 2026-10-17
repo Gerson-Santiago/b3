@@ -11,7 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from dashboard.loaders.movimentacao import read_movimentacao_file
-from dashboard.models.ativos import renomear_ativo, ticker
+from dashboard.models.ativos import resolver_ativo_seguro
 
 
 def carregar_dados():
@@ -84,7 +84,7 @@ def item_2_semantica_quantidade(df: pd.DataFrame):
 
     # Rastrear o saldo cronologico antes de cada linha por produto
     base = df.copy()
-    base["_ativo"] = base["produto"].map(lambda p: renomear_ativo(p) or str(p).strip())
+    base["_ativo"] = base["produto"].map(lambda p: resolver_ativo_seguro(p).codigo)
 
     import unicodedata
 
@@ -157,21 +157,21 @@ def item_3_identidade(df: pd.DataFrame):
         print(f"  - {p}")
     print()
 
-    print("--- Nomes diferentes por Ticker ---")
+    print("--- Nomes diferentes por AtivoId ---")
     mapa_ticker_nomes = {}
     for p in produtos_distintos:
-        t = ticker(p)
+        t = resolver_ativo_seguro(p).codigo
         if not t:
-            t = "SEM_TICKER"
+            t = "SEM_ATIVO"
         mapa_ticker_nomes.setdefault(t, set()).add(p)
 
     for t, nomes in sorted(mapa_ticker_nomes.items()):
         if len(nomes) > 1:
-            print(f"Ticker [{t}] agrupa {len(nomes)} nomes:")
+            print(f"Ativo [{t}] agrupa {len(nomes)} nomes:")
             for n in sorted(nomes):
                 print(f"    * {n}")
         else:
-            print(f"Ticker [{t}]: {list(nomes)[0]}")
+            print(f"Ativo [{t}]: {list(nomes)[0]}")
     print()
 
     print("--- Titulos do Tesouro com Nome e Vencimento Extraidos ---")
@@ -179,19 +179,19 @@ def item_3_identidade(df: pd.DataFrame):
     for tp in tesouro_prods:
         m = re.search(r"(\d{4})", tp)
         venc = m.group(1) if m else "N/A"
-        tick = ticker(tp)
-        print(f"Produto: '{tp}' | Ticker gerado: '{tick}' | Vencimento extraido: '{venc}'")
+        aid = resolver_ativo_seguro(tp)
+        print(f"Produto: '{tp}' | AtivoId gerado: '{aid}' | Vencimento extraido: '{venc}'")
     print()
 
-    print("--- Colisoes onde ticker() junta titulos diferentes ---")
-    colisoes = {t: nomes for t, nomes in mapa_ticker_nomes.items() if len(nomes) > 1 and t != "SEM_TICKER"}
+    print("--- Colisoes onde resolver_ativo() junta titulos diferentes ---")
+    colisoes = {t: nomes for t, nomes in mapa_ticker_nomes.items() if len(nomes) > 1 and t != "SEM_ATIVO"}
     if colisoes:
         for t, nomes in colisoes.items():
-            print(f"COLISAO DETECTADA: Ticker '{t}' unifica os seguintes produtos:")
+            print(f"COLISAO DETECTADA: Ativo '{t}' unifica os seguintes produtos:")
             for n in nomes:
                 print(f"    -> {n}")
     else:
-        print("Nenhuma colisao detectada onde ticker() junte titulos diferentes indevidamente.")
+        print("Nenhuma colisao detectada onde resolver_ativo() junte titulos diferentes indevidamente.")
     print()
 
 
@@ -223,7 +223,7 @@ def item_4_datas(df: pd.DataFrame):
     # Dias com mais de um evento no mesmo ativo
     print("--- Dias com Mais de Um Evento no Mesmo Ativo ---")
     base = df.copy()
-    base["_ativo"] = base["produto"].map(lambda p: renomear_ativo(p) or str(p).strip())
+    base["_ativo"] = base["produto"].map(lambda p: resolver_ativo_seguro(p).codigo)
     base["_dt"] = base["data"].dt.strftime("%Y-%m-%d")
 
     dups = base.groupby(["_ativo", "_dt"]).filter(lambda g: len(g) > 1)

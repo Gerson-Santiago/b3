@@ -17,6 +17,7 @@ try:
     from dashboard.loaders.movimentacao import read_movimentacao_file
     from dashboard.loaders.posicao import read_posicao_file
     from dashboard.models.eventos import listar_movimentacoes_pendentes
+    from dashboard.models.qualidade import RelatorioQualidade, mensagens
     from dashboard.state import DashboardState
     from dashboard.utils import find_latest
     from dashboard.views import carteira, evolucao, proventos, reconciliacao
@@ -26,6 +27,7 @@ except ImportError:  # pragma: no cover
     from loaders.movimentacao import read_movimentacao_file
     from loaders.posicao import read_posicao_file
     from models.eventos import listar_movimentacoes_pendentes
+    from models.qualidade import RelatorioQualidade, mensagens
     from state import DashboardState
     from utils import find_latest
     from views import carteira, evolucao, proventos, reconciliacao
@@ -49,13 +51,25 @@ _POS_SEARCH_DIRS = [
 ]
 
 
-def load_default_movimentacao() -> pd.DataFrame:
+def _safe_call_reader(reader, path, qualidade):
+    if qualidade is not None:
+        try:
+            return reader(path, qualidade=qualidade)
+        except TypeError:
+            return reader(path)
+    try:
+        return reader(path)
+    except TypeError:
+        return reader(path, qualidade=None)
+
+
+def load_default_movimentacao(qualidade: RelatorioQualidade | None = None) -> pd.DataFrame:
     for folder, prefix in _MOV_SEARCH_DIRS:
         try:
             path = find_latest(folder, prefix)
             if path is None:
                 continue
-            return read_movimentacao_file(path)
+            return _safe_call_reader(read_movimentacao_file, path, qualidade)
         except Exception as exc:
             st.error(f"Erro ao carregar movimentação padrão em {folder}: {exc}")
             raise
@@ -65,13 +79,13 @@ def load_default_movimentacao() -> pd.DataFrame:
     raise FileNotFoundError(message)
 
 
-def load_default_posicao() -> pd.DataFrame:
+def load_default_posicao(qualidade: RelatorioQualidade | None = None) -> pd.DataFrame:
     for folder, prefix in _POS_SEARCH_DIRS:
         try:
             path = find_latest(folder, prefix)
             if path is None:
                 continue
-            return read_posicao_file(path)
+            return _safe_call_reader(read_posicao_file, path, qualidade)
         except Exception as exc:
             st.error(f"Erro ao carregar posição padrão em {folder}: {exc}")
             raise
@@ -85,9 +99,9 @@ def load_default_posicao() -> pd.DataFrame:
 # Sidebar — carregamento de arquivos
 # ---------------------------------------------------------------------------
 
-def _carregar_dados(uploaded_mov, uploaded_pos) -> tuple[pd.DataFrame, pd.DataFrame]:
-    mov_df = read_movimentacao_file(uploaded_mov) if uploaded_mov is not None else load_default_movimentacao()
-    pos_df = read_posicao_file(uploaded_pos) if uploaded_pos is not None else load_default_posicao()
+def _carregar_dados(uploaded_mov, uploaded_pos, qualidade: RelatorioQualidade | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    mov_df = _safe_call_reader(read_movimentacao_file, uploaded_mov, qualidade) if uploaded_mov is not None else load_default_movimentacao(qualidade=qualidade)
+    pos_df = _safe_call_reader(read_posicao_file, uploaded_pos, qualidade) if uploaded_pos is not None else load_default_posicao(qualidade=qualidade)
     return mov_df.copy(), pos_df.copy()
 
 
@@ -112,7 +126,8 @@ def _sidebar_filtros(mov_df: pd.DataFrame, pos_df: pd.DataFrame):
     st.sidebar.header("Filtros")
     selection_df = pd.concat([mov_df, pos_df], ignore_index=True) if not mov_df.empty and not pos_df.empty else base_df
     instituicoes = sorted(selection_df["instituicao"].dropna().astype(str).unique().tolist()) if "instituicao" in selection_df.columns else []
-    produtos = sorted(selection_df["produto"].dropna().astype(str).unique().tolist()) if "produto" in selection_df.columns else []
+    col_prod = "ativo" if "ativo" in selection_df.columns else "produto"
+    produtos = sorted(selection_df[col_prod].dropna().astype(str).unique().tolist()) if col_prod in selection_df.columns else []
 
     selected_inst = st.sidebar.multiselect("Instituição", instituicoes)
     selected_prod = st.sidebar.multiselect("Produto", produtos)
@@ -134,7 +149,8 @@ def main():
     uploaded_mov = st.sidebar.file_uploader("Movimentação (XLSX)", type=["xlsx", "xls"], key="movimentacao")
     uploaded_pos = st.sidebar.file_uploader("Posição (XLSX)", type=["xlsx", "xls"], key="posicao")
 
-    mov_df, pos_df = _carregar_dados(uploaded_mov, uploaded_pos)
+    qualidade = RelatorioQualidade()
+    mov_df, pos_df = _carregar_dados(uploaded_mov, uploaded_pos, qualidade=qualidade)
 
     if mov_df.empty and pos_df.empty:
         st.warning("Nenhum arquivo válido foi encontrado. Faça upload de movimentação e/ou posição da B3.")
@@ -157,7 +173,11 @@ def main():
         end_date=end_date,
         produtos_selecionados=selected_prod,
         instituicoes_selecionadas=selected_inst,
+        qualidade=qualidade,
     )
+
+    for msg in mensagens(state.qualidade):
+        st.warning(msg)
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Movimentações Filtradas", f"{len(mov_filtered):,}" if not mov_filtered.empty else "0")

@@ -47,7 +47,9 @@ def filtrar_dataframe(
     if instituicoes and "instituicao" in resultado.columns:
         resultado = resultado[resultado["instituicao"].isin(instituicoes)]
 
-    if produtos and "produto" in resultado.columns:
-        resultado = resultado[resultado["produto"].isin(produtos)]
+    if produtos:
+        col_prod = "ativo" if "ativo" in resultado.columns else ("produto" if "produto" in resultado.columns else None)
+        if col_prod:
+            resultado = resultado[resultado[col_prod].isin(produtos)]
 
     return resultado

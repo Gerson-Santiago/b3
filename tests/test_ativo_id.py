@@ -1,11 +1,20 @@
-from __future__ import annotations
-
+import re
 from pathlib import Path
 import pandas as pd
 import pytest
 
 from dashboard.loaders.movimentacao import read_movimentacao_file
-from dashboard.models.ativos import AtivoId, resolver_ativo
+from dashboard.loaders.posicao import read_posicao_file
+from dashboard.models.ativos import (
+    AtivoDesconhecido,
+    AtivoId,
+    Classe,
+    anotar_ativos,
+    normalizar_nome,
+    resolver_ativo,
+    resolver_ativo_seguro,
+)
+from dashboard.models.qualidade import Aviso, RelatorioQualidade
 
 
 FIXTURES_MOV_DIR = Path(__file__).resolve().parents[1] / "xlsx" / "movimentacao"
@@ -151,3 +160,101 @@ def test_produto_desconhecido_gera_erro_ou_aviso_nunca_chave_inventada(produto_i
     """(d) Produto desconhecido gera erro ou aviso explícito, nunca uma chave inventada."""
     with pytest.raises((ValueError, KeyError)):
         resolver_ativo(produto_invalido)
+
+
+def test_ativo_id_nao_e_igual_a_string():
+    aid = AtivoId(Classe.BDR, "ROXO34")
+    assert aid != "ROXO34"
+
+
+def test_resolver_ativo_desconhecido_levanta():
+    with pytest.raises(AtivoDesconhecido) as exc_info:
+        resolver_ativo("Tesouro IPCA+ 2040")
+    assert exc_info.value.produto == "Tesouro IPCA+ 2040"
+
+
+def test_resolver_ativo_seguro_registra_aviso():
+    qualidade = RelatorioQualidade()
+    aid = resolver_ativo_seguro("Tesouro IPCA+ 2040", qualidade)
+    assert aid == AtivoId(Classe.DESCONHECIDO, normalizar_nome("Tesouro IPCA+ 2040"))
+    assert len(qualidade.avisos) == 1
+    assert qualidade.avisos[0].produto == "Tesouro IPCA+ 2040"
+
+    id_2026 = resolver_ativo("Tesouro IPCA+ 2026")
+    id_2032 = resolver_ativo("Tesouro IPCA+ 2032")
+    assert aid != id_2026
+    assert aid != id_2032
+
+
+def test_loaders_anotam_ativo_id():
+    mov_fixture = Path(__file__).resolve().parent / "fixtures" / "movimentacao_7_ativos.xlsx"
+    pos_fixture = Path(__file__).resolve().parent / "fixtures" / "posicao_7_ativos.xlsx"
+
+    df_mov = read_movimentacao_file(mov_fixture)
+    df_pos = read_posicao_file(pos_fixture)
+
+    assert "ativo_id" in df_mov.columns
+    assert "ativo" in df_mov.columns
+    assert "ativo_id" in df_pos.columns
+    assert "ativo" in df_pos.columns
+
+    assert all(isinstance(a, AtivoId) for a in df_mov["ativo_id"])
+    assert all(isinstance(a, AtivoId) for a in df_pos["ativo_id"])
+    assert all(isinstance(c, str) and len(c) > 0 for c in df_mov["ativo"])
+    assert all(isinstance(c, str) and len(c) > 0 for c in df_pos["ativo"])
+
+
+def test_classe_do_catalogo_coincide_com_aba_da_posicao():
+    pos_dir = Path(__file__).resolve().parents[1] / "xlsx" / "posicao"
+    snapshots = sorted(pos_dir.glob("*.xlsx"))
+    assert len(snapshots) == 4, f"Esperado 4 snapshots de posição, encontrado {len(snapshots)}"
+
+    for snap in snapshots:
+        qualidade = RelatorioQualidade()
+        df = read_posicao_file(snap, qualidade=qualidade)
+        assert "ativo_id" in df.columns
+        for _, row in df.iterrows():
+            aid = row["ativo_id"]
+            cat = row.get("categoria")
+            assert aid.classe == cat, f"Divergência no arquivo {snap.name}: {row['produto']} tem classe {aid.classe} != aba {cat}"
+        divergencias = [a for a in qualidade.avisos if a.tipo == "CLASSE_DIVERGENTE"]
+        assert len(divergencias) == 0
+
+
+def test_normalizar_nome_unifica_razao_social():
+    assert normalizar_nome("CPFE3 - CPFL ENERGIA S/A") == normalizar_nome("CPFE3 - CPFL ENERGIA S.A.")
+    assert normalizar_nome("PETR4 - PETROLEO BRASILEIRO S/A - PETROBRAS") == normalizar_nome(
+        "PETR4 - PETROLEO BRASILEIRO S.A. PETROBRAS"
+    )
+
+
+def test_anotar_ativos_preenche_ativo_id_e_codigo():
+    df = pd.DataFrame({"produto": ["PETR4", "ROXO34", "Tesouro Selic 2028"]})
+    out = anotar_ativos(df)
+    assert list(out["ativo"]) == ["PETR4", "ROXO34", "Tesouro Selic 2028"]
+    assert all(isinstance(aid, AtivoId) for aid in out["ativo_id"])
+    assert out.loc[0, "ativo_id"].classe == Classe.ACOES
+    assert out.loc[1, "ativo_id"].classe == Classe.BDR
+    assert out.loc[2, "ativo_id"].classe == Classe.TESOURO
+
+
+def test_anotar_ativos_dataframe_vazio_ganha_colunas():
+    vazio = pd.DataFrame(columns=["produto"])
+    out = anotar_ativos(vazio)
+    assert "ativo_id" in out.columns
+    assert "ativo" in out.columns
+    assert out.empty
+
+
+def test_sem_ticker_nem_renomear_em_producao():
+    root = Path(__file__).resolve().parents[1]
+    padrao = re.compile(r"\b(ticker\(|renomear_ativo\()")
+    arquivos = list((root / "dashboard").rglob("*.py")) + list((root / "scripts").glob("*.py"))
+    ocorrencias = []
+    for arq in arquivos:
+        conteudo = arq.read_text(encoding="utf-8")
+        for num, linha in enumerate(conteudo.splitlines(), start=1):
+            if padrao.search(linha):
+                ocorrencias.append(f"{arq.relative_to(root)}:{num}: {linha.strip()}")
+    assert not ocorrencias, "Ocorrências proibidas de ticker( ou renomear_ativo( encontradas:\n" + "\n".join(ocorrencias)
+

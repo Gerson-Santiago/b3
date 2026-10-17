@@ -5,52 +5,68 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import pandas as pd
 from dashboard.loaders.movimentacao import read_movimentacao_file
 from dashboard.loaders.posicao import read_posicao_file
-from dashboard.metrics.preco_medio import compute_preco_medio
+from dashboard.metrics.reconciliacao import comparar, data_do_arquivo, quantidade_ate
+from dashboard.models.ativos import resolver_ativo
 
 
-def normalizar_produto(valor):
-    if valor is None:
-        return ""
-    texto = str(valor).strip()
-    if " - " in texto:
-        texto = texto.split(" - ", 1)[0]
-    return texto.strip().upper()
+def main():
+    mov_files = sorted(Path("xlsx/movimentacao").glob("*.xlsx"))
+    if not mov_files:
+        print("Nenhum arquivo de movimentação encontrado.")
+        return
+
+    mov_path = mov_files[-1]
+    mov = read_movimentacao_file(mov_path)
+    print(f"Movimentação carregada: {mov_path.name} ({len(mov)} linhas)\n")
+
+    pos_files = sorted(Path("xlsx/posicao").glob("*.xlsx"))
+    todos_deltas_divergentes = []
+
+    for pos_path in pos_files:
+        data_pos = data_do_arquivo(pos_path.name)
+        pos = read_posicao_file(pos_path)
+        qtd_mov = quantidade_ate(mov, data_pos)
+        tabela = comparar(qtd_mov, pos, mov_df=mov, data_corte=data_pos)
+
+        tabela["data"] = data_pos
+        tabela["classe"] = tabela["ativo"].map(lambda a: resolver_ativo(a).classe.value)
+        tabela["status"] = tabela["delta"].apply(lambda d: "OK" if abs(d) < 1e-4 else "DIVERGE")
+
+        colunas_exibir = ["data", "ativo", "classe", "qtd_mov", "qtd_pos", "delta", "status"]
+        tabela_exibir = tabela[colunas_exibir]
+
+        print("=" * 80)
+        print(f"SNAPSHOT: {pos_path.name} (Data de Corte: {data_pos})")
+        print("=" * 80)
+        print(tabela_exibir.to_string(index=False))
+        print()
+
+        divergentes = tabela[tabela["status"] == "DIVERGE"]
+        if not divergentes.empty:
+            for _, r in divergentes.iterrows():
+                todos_deltas_divergentes.append({
+                    "data": data_pos,
+                    "arquivo": pos_path.name,
+                    "ativo": r["ativo"],
+                    "classe": r["classe"],
+                    "qtd_mov": r["qtd_mov"],
+                    "qtd_pos": r["qtd_pos"],
+                    "delta": r["delta"],
+                    "observacao": r.get("observacao", ""),
+                })
+
+    print("=" * 80)
+    print("RESUMO DE DELTAS DIFERENTES DE ZERO (DIVERGÊNCIAS)")
+    print("=" * 80)
+    if todos_deltas_divergentes:
+        df_div = pd.DataFrame(todos_deltas_divergentes)
+        print(df_div.to_string(index=False))
+    else:
+        print("Nenhuma divergência encontrada em nenhum dos snapshots.")
 
 
-mov = read_movimentacao_file(sorted(Path("xlsx/movimentacao").glob("*.xlsx"))[-1])
-pos = read_posicao_file(sorted(Path("xlsx/posicao").glob("*.xlsx"))[-1])
-
-metricas = compute_preco_medio(mov).copy()
-metricas["produto_norm"] = metricas["produto"].map(normalizar_produto)
-
-pos_agg = (
-    pos.assign(produto_norm=pos["produto"].map(normalizar_produto))
-    .groupby("produto_norm", as_index=False)["quantidade"]
-    .sum()
-    .rename(columns={"quantidade": "quantidade_posicao"})
-)
-
-produtos = ["B3SA3", "PETR4", "VALE3", "CPFE3", "MSFT34", "ROXO34", "GOGL35"]
-resumo = []
-for codigo in produtos:
-    item = metricas[metricas["produto_norm"] == codigo]
-    pos_item = pos_agg[pos_agg["produto_norm"] == codigo]
-    if item.empty:
-        continue
-    linha = item.iloc[0].to_dict()
-    linha["quantidade_codigo"] = linha.get("quantidade", 0.0)
-    linha["quantidade_posicao"] = pos_item["quantidade_posicao"].iloc[0] if not pos_item.empty else None
-    linha["produto"] = codigo
-    resumo.append(linha)
-
-for linha in resumo:
-    print(
-        f"{linha['produto']}: quantidade_codigo={linha['quantidade_codigo']}, "
-        f"preco_medio={linha.get('preco_medio')}, "
-        f"quantidade_posicao={linha['quantidade_posicao']}"
-    )
-
-print("\n--- posição atual ---")
-print(pos[["produto", "quantidade"]].head(20).to_string(index=False))
+if __name__ == "__main__":
+    main()

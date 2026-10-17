@@ -17,8 +17,9 @@ try:
     from dashboard.metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
     from dashboard.metrics.preco_medio import compute_preco_medio
     from dashboard.metrics.proventos import compute_proventos
-    from dashboard.models.ativos import ticker
+    from dashboard.models.ativos import resolver_ativo_seguro
     from dashboard.models.eventos import aplicar_eventos_ordenados
+    from dashboard.models.qualidade import RelatorioQualidade
 except ImportError:  # pragma: no cover
     from filters import filtrar_dataframe
     from metrics.dy import compute_dy_metrics
@@ -26,8 +27,9 @@ except ImportError:  # pragma: no cover
     from metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
     from metrics.preco_medio import compute_preco_medio
     from metrics.proventos import compute_proventos
-    from models.ativos import ticker
+    from models.ativos import resolver_ativo_seguro
     from models.eventos import aplicar_eventos_ordenados
+    from models.qualidade import RelatorioQualidade
 
 # Categorias que compõem "Bolsa de Valores" no gráfico agrupado
 _CATEGORIAS_BOLSA = {"AÇÕES", "BDR"}
@@ -53,22 +55,31 @@ def _agrupar_bolsa(pos_categoria: pd.DataFrame) -> pd.DataFrame:
 def _enriquecer_pos_cards(pos: pd.DataFrame, pm_df: pd.DataFrame) -> pd.DataFrame:
     """Junta pos (valor atual do snapshot) com preco_medio/custo_total e deriva pl/variacao_pct.
 
-    O join é feito via ticker() porque pos.produto contém o nome completo
-    ("PETR4 - PETROBRAS") enquanto pm_df.produto contém o ticker ("PETR4").
-    ticker() tem fallback regex para produtos fora do catálogo canônico.
+    O join é feito via ativo_id entre pos e pm_df.
     """
     if pos.empty:
         return pd.DataFrame(columns=["produto", "categoria", "quantidade", "valor_abs",
                                      "preco_medio", "custo_total", "pl", "variacao_pct"])
 
-    cards = pos[["produto", "categoria", "quantidade", "valor_abs"]].copy()
+    cards = pos.copy()
+    colunas_base = [c for c in ["produto", "categoria", "quantidade", "valor_abs"] if c in cards.columns]
+    cards = cards[colunas_base].copy()
 
     if not pm_df.empty:
-        # Chave de join: ticker normalizado dos dois lados
-        cards["_ticker"] = cards["produto"].apply(ticker)
-        pm = pm_df[["produto", "preco_medio", "custo_total"]].copy()
-        pm = pm.rename(columns={"produto": "_ticker"})
-        cards = cards.merge(pm, on="_ticker", how="left").drop(columns=["_ticker"])
+        if "ativo_id" in pos.columns:
+            cards["_join_key"] = pos["ativo_id"]
+        else:
+            cards["_join_key"] = cards["produto"].map(resolver_ativo_seguro)
+
+        if "ativo_id" in pm_df.columns:
+            pm = pm_df[["ativo_id", "preco_medio", "custo_total"]].copy()
+            pm = pm.rename(columns={"ativo_id": "_join_key"})
+        else:
+            pm = pm_df[["produto", "preco_medio", "custo_total"]].copy()
+            pm["_join_key"] = pm["produto"].map(resolver_ativo_seguro)
+            pm = pm.drop(columns=["produto"])
+
+        cards = cards.merge(pm, on="_join_key", how="left").drop(columns=["_join_key"])
     else:
         cards["preco_medio"] = float("nan")
         cards["custo_total"] = float("nan")
@@ -109,6 +120,7 @@ class DashboardState:
     evol_bolsa: dict
     evol_tesouro: dict
     dy_metrics: pd.DataFrame
+    qualidade: RelatorioQualidade = field(default_factory=RelatorioQualidade)
 
     # ------------------------------------------------------------------
     # Factory method
@@ -125,6 +137,7 @@ class DashboardState:
         mov_df: pd.DataFrame | None = None,
         produtos_selecionados: list[str] | None = None,
         instituicoes_selecionadas: list[str] | None = None,
+        qualidade: RelatorioQualidade | None = None,
     ) -> "DashboardState":
         """Calcula todos os dados derivados e retorna um ``DashboardState``.
 
@@ -244,4 +257,5 @@ class DashboardState:
             evol_bolsa=evol_bolsa,
             evol_tesouro=evol_tesouro,
             dy_metrics=dy_metrics,
+            qualidade=qualidade if qualidade is not None else RelatorioQualidade(),
         )

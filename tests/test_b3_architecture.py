@@ -112,7 +112,7 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
     def test_compute_position_categoria_aggregates_by_category(self):
         df = pd.DataFrame(
             {
-                "produto": ["PETR4", "GOGL35 BDR", "Tesouro Selic 2028"],
+                "produto": ["PETR4", "GOGL35 - ALPHABET INC.", "Tesouro Selic 2028"],
                 "qtd_liquida": [10, 5, 1],
                 "valor_liquido": [100, 80, 50],
             }

@@ -18,8 +18,9 @@ from dashboard.utils import find_latest
 
 def load_default(
     tipo: str,
-    reader: Callable[[Path], pd.DataFrame],
+    reader: Callable[..., pd.DataFrame],
     search_dirs: list[tuple[Path, str]],
+    qualidade: Any = None,
 ) -> pd.DataFrame:
     """Localiza o arquivo mais recente e retorna o DataFrame lido.
 
@@ -47,6 +48,11 @@ def load_default(
         if path is None:
             continue
         # Propaga exceções do reader diretamente (sem captura silenciosa)
+        if qualidade is not None:
+            try:
+                return reader(path, qualidade=qualidade)
+            except TypeError:
+                return reader(path)
         return reader(path)
 
     raise FileNotFoundError(

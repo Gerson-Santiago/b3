@@ -106,15 +106,16 @@ def aplicar_eventos_ordenados(df, aplicar_define: bool = True):
     base["qtd_liquida"] = pd.to_numeric(base["qtd_liquida"], errors="coerce").fillna(0.0)
     base["valor_liquido"] = pd.to_numeric(base["valor_liquido"], errors="coerce").fillna(0.0)
 
-    from dashboard.models.ativos import renomear_ativo
+    from dashboard.models.ativos import resolver_ativo_seguro
 
-    base["_ativo_chave"] = base["produto"].map(lambda p: renomear_ativo(p) or str(p).strip())
+    if "ativo_id" not in base.columns:
+        base["ativo_id"] = base["produto"].map(resolver_ativo_seguro)
 
     if "data" in base.columns:
-        base = base.sort_values(["_ativo_chave", "data"], kind="mergesort", na_position="last")
+        base = base.sort_values(["ativo_id", "data"], kind="mergesort", na_position="last")
 
     linhas = []
-    for chave, grupo in base.groupby("_ativo_chave", sort=False):
+    for chave, grupo in base.groupby("ativo_id", sort=False):
         quantidade_atual = 0.0
         custo_total = 0.0
 
@@ -211,9 +212,12 @@ def aplicar_eventos_ordenados(df, aplicar_define: bool = True):
         else:
             preco_medio = float("nan")
 
+        codigo = chave.codigo if hasattr(chave, "codigo") else str(chave)
         linhas.append(
             {
-                "produto": chave,
+                "ativo_id": chave,
+                "ativo": codigo,
+                "produto": codigo,
                 "quantidade": quantidade_atual,
                 "custo_total": custo_total,
                 "preco_medio": preco_medio,
@@ -221,9 +225,9 @@ def aplicar_eventos_ordenados(df, aplicar_define: bool = True):
         )
 
     if not linhas:
-        return pd.DataFrame(columns=["produto", "quantidade", "custo_total", "preco_medio"])
+        return pd.DataFrame(columns=["ativo_id", "ativo", "produto", "quantidade", "custo_total", "preco_medio"])
 
-    return pd.DataFrame(linhas, columns=["produto", "quantidade", "custo_total", "preco_medio"]).reset_index(drop=True)
+    return pd.DataFrame(linhas).reset_index(drop=True)
 
 
 def listar_movimentacoes_pendentes(df) -> list[str]:
