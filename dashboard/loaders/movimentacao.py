@@ -83,8 +83,8 @@ def _read_csv_with_encodings(path_or_buffer):
     raise ValueError("Não foi possível decodificar o arquivo CSV de movimentação.")
 
 
-def read_movimentacao_csv(file_source: Union[str, Path, BytesIO, object]):
-    df = _read_csv_with_encodings(file_source)
+def _normalize_movimentacao_df(df):
+    df = df.copy()
     df.columns = [str(c).strip() for c in df.columns]
     df = normaliza_colunas(df, ALIASES_MOV)
 
@@ -102,8 +102,10 @@ def read_movimentacao_csv(file_source: Union[str, Path, BytesIO, object]):
     if missing:
         raise ValueError(f"Colunas ausentes na movimentação após normalização: {sorted(missing)}")
 
-    df = df.copy()
-    df["data"] = pd.to_datetime(df["data"], format="%d/%m/%Y", dayfirst=True, errors="coerce")
+    raw_data = df["data"].astype(str).str.strip()
+    df["data"] = pd.to_datetime(raw_data, format="%d/%m/%Y", dayfirst=True, errors="coerce")
+    if df["data"].isna().all() and not raw_data.empty:
+        df["data"] = pd.to_datetime(raw_data, errors="coerce", dayfirst=True)
 
     for col in ["quantidade", "preco_unitario", "valor_operacao"]:
         df[col] = df[col].apply(parse_money)
@@ -121,6 +123,11 @@ def read_movimentacao_csv(file_source: Union[str, Path, BytesIO, object]):
     return df
 
 
+def read_movimentacao_csv(file_source: Union[str, Path, BytesIO, object]):
+    df = _read_csv_with_encodings(file_source)
+    return _normalize_movimentacao_df(df)
+
+
 def read_movimentacao_excel(file_source: Union[str, Path, BytesIO, object]):
     xls = pd.ExcelFile(file_source, engine="openpyxl")
     frames = []
@@ -131,32 +138,10 @@ def read_movimentacao_excel(file_source: Union[str, Path, BytesIO, object]):
         if df.empty:
             continue
 
-        df.columns = [str(c).strip() for c in df.columns]
-        df = normaliza_colunas(df, ALIASES_MOV)
-
-        required = {"entrada_saida", "data", "movimentacao", "produto", "instituicao", "quantidade", "preco_unitario", "valor_operacao"}
-        if not required.issubset(df.columns):
+        try:
+            frames.append(_normalize_movimentacao_df(df))
+        except ValueError:
             continue
-
-        df = df.copy()
-        if pd.api.types.is_datetime64_any_dtype(df["data"]):
-            df["data"] = pd.to_datetime(df["data"], errors="coerce")
-        else:
-            df["data"] = pd.to_datetime(df["data"].astype(str), dayfirst=True, errors="coerce")
-        for col in ["quantidade", "preco_unitario", "valor_operacao"]:
-            df[col] = df[col].apply(parse_money)
-
-        df["entrada_saida"] = df["entrada_saida"].fillna("").astype(str).str.strip().str.lower()
-        df["movimentacao"] = df["movimentacao"].fillna("").astype(str).str.strip().str.lower()
-        df["produto"] = df["produto"].fillna("Sem nome").astype(str).str.strip()
-        df["instituicao"] = df["instituicao"].fillna("Sem instituição").astype(str).str.strip()
-
-        sinal = {"credito": 1, "crédito": 1, "debito": -1, "débito": -1}
-        df["sinal"] = df["entrada_saida"].map(sinal).fillna(0)
-        df["qtd_liquida"] = df["quantidade"] * df["sinal"]
-        df["valor_liquido"] = df["valor_operacao"] * df["sinal"]
-        df["mes"] = df["data"].dt.to_period("M").astype(str)
-        frames.append(df)
 
     if not frames:
         raise ValueError("Nenhuma aba com o formato de movimentação foi lida corretamente.")

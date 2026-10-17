@@ -2,8 +2,10 @@ import re
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from dashboard import app
+from dashboard.loaders.movimentacao import parse_money
 from dashboard.utils import find_latest
 
 
@@ -27,6 +29,35 @@ def test_find_latest_prefers_xlsx_over_csv(tmp_path):
     selected = find_latest(tmp_path, "movimentacao")
 
     assert selected == xlsx_file
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (102.5, 102.5),
+        (1.0, 1.0),
+        (-5.75, -5.75),
+        ("102,5", 102.5),
+        ("1.234,56", 1234.56),
+        ("R$ 1.234,56", 1234.56),
+        ("USD 42.50", 42.5),
+        ("(1.234,56)", -1234.56),
+        ("1.234", 1234.0),
+        ("1.234,5", 1234.5),
+        ("1.234.567,89", 1234567.89),
+        ("1,234.56", 1234.56),
+        ("12.345,67", 12345.67),
+        ("0", 0.0),
+        ("-12,34", -12.34),
+        ("(12,34)", -12.34),
+        ("R$ 0,00", 0.0),
+        ("  9.99  ", 9.99),
+        ("1.234.567", 1234567.0),
+        ("99", 99.0),
+    ],
+)
+def test_parse_money_values(value, expected):
+    assert parse_money(value) == pytest.approx(expected)
 
 
 def test_load_default_movimentacao_shows_read_error(monkeypatch):
