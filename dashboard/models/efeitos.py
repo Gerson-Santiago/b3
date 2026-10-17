@@ -3,86 +3,315 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
+from enum import Enum
+from typing import Any
 
 import pandas as pd
 
+from dashboard.models.movimentacao import TipoMovimentacao, classificar_movimentacao
 from dashboard.models.texto import normalizar_texto
+
+
+class SemanticaQuantidade(str, Enum):
+    DELTA = "DELTA"
+    TOTAL = "TOTAL"
+    SNAPSHOT = "SNAPSHOT"
+    NENHUMA = "NENHUMA"
 
 
 @dataclass(frozen=True)
 class EfeitoMovimentacao:
-    movimentacao: str
-    entrada_saida: str
-    quantidade: str
-    custo: str
-    provento: bool = False
+    tipo: TipoMovimentacao
+    sentido: str
+    semantica_quantidade: SemanticaQuantidade
+    efeito_custo: str
+    eh_provento: bool = False
     status: str = "definido"
+    movimentacao_nome: str = ""
+
+    @property
+    def movimentacao(self) -> str:
+        return self.movimentacao_nome or self.tipo.value
+
+    @property
+    def entrada_saida(self) -> str:
+        return self.sentido
+
+    @property
+    def provento(self) -> bool:
+        return self.eh_provento
+
+    @property
+    def custo(self) -> str:
+        return self.efeito_custo
+
+    @property
+    def quantidade(self) -> str:
+        if self.status == "pendente":
+            return "pendente"
+        if self.semantica_quantidade == SemanticaQuantidade.NENHUMA:
+            return "ignora"
+        if self.semantica_quantidade in (SemanticaQuantidade.TOTAL, SemanticaQuantidade.SNAPSHOT):
+            return "define"
+        if self.semantica_quantidade == SemanticaQuantidade.DELTA:
+            return "soma" if self.sentido in ("credito", "crédito") else "subtrai"
+        return "ignora"
 
 
-def _efeito(
-    movimentacao: str,
-    entrada_saida: str,
-    quantidade: str,
-    custo: str,
-    provento: bool = False,
-) -> tuple[tuple[str, str], EfeitoMovimentacao]:
-    return (
-        (movimentacao, entrada_saida),
-        EfeitoMovimentacao(movimentacao, entrada_saida, quantidade, custo, provento, "definido"),
-    )
+EVENTOS: dict[tuple[Any, str], EfeitoMovimentacao] = {
+    (TipoMovimentacao.COMPRA, "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.COMPRA,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="soma",
+        eh_provento=False,
+        movimentacao_nome="compra",
+    ),
+    (TipoMovimentacao.VENDA, "debito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.VENDA,
+        sentido="debito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="subtrai",
+        eh_provento=False,
+        movimentacao_nome="venda",
+    ),
+    (TipoMovimentacao.DESDOBRAMENTO, "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.DESDOBRAMENTO,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="nenhum",
+        eh_provento=False,
+        movimentacao_nome="desdobro",
+    ),
+    (TipoMovimentacao.GRUPAMENTO, "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.GRUPAMENTO,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.TOTAL,
+        efeito_custo="nenhum",
+        eh_provento=False,
+        movimentacao_nome="grupamento",
+    ),
+    (TipoMovimentacao.BONIFICACAO, "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.BONIFICACAO,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="nenhum",
+        eh_provento=False,
+        movimentacao_nome="bonificacao",
+    ),
+    (TipoMovimentacao.TRANSFERENCIA, "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.TRANSFERENCIA,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="soma",
+        eh_provento=False,
+        movimentacao_nome="transferencia",
+    ),
+    (TipoMovimentacao.TRANSFERENCIA, "debito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.TRANSFERENCIA,
+        sentido="debito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="subtrai",
+        eh_provento=False,
+        movimentacao_nome="transferencia",
+    ),
+    (TipoMovimentacao.AJUSTE_QUANTIDADE, "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.AJUSTE_QUANTIDADE,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.NENHUMA,
+        efeito_custo="nenhum",
+        eh_provento=False,
+        movimentacao_nome="leilao de fracao",
+    ),
+    (TipoMovimentacao.AJUSTE_QUANTIDADE, "debito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.AJUSTE_QUANTIDADE,
+        sentido="debito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="nenhum",
+        eh_provento=False,
+        movimentacao_nome="fracao em ativos",
+    ),
+    (TipoMovimentacao.PROVENTO, "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.PROVENTO,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.NENHUMA,
+        efeito_custo="ignora",
+        eh_provento=True,
+        movimentacao_nome="dividendo",
+    ),
+    (TipoMovimentacao.PROVENTO, "debito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.PROVENTO,
+        sentido="debito",
+        semantica_quantidade=SemanticaQuantidade.NENHUMA,
+        efeito_custo="ignora",
+        eh_provento=False,
+        movimentacao_nome="dividendo - cancelado",
+    ),
+}
 
+# Mapeamentos 1:1 específicos por string para preservar compatibilidade exata de histórico
+_EFEITOS_ESPECIFICOS: dict[tuple[str, str], EfeitoMovimentacao] = {
+    ("amortizacao", "debito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.TRANSFERENCIA,
+        sentido="debito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="subtrai",
+        eh_provento=False,
+        movimentacao_nome="amortizacao",
+    ),
+    ("atualizacao", "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.PROVENTO,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.TOTAL,
+        efeito_custo="nenhum",
+        eh_provento=False,
+        movimentacao_nome="atualizacao",
+    ),
+    ("atualizacao", "debito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.PROVENTO,
+        sentido="debito",
+        semantica_quantidade=SemanticaQuantidade.TOTAL,
+        efeito_custo="nenhum",
+        eh_provento=False,
+        movimentacao_nome="atualizacao",
+    ),
+    ("bonificacao", "credito"): EVENTOS[(TipoMovimentacao.BONIFICACAO, "credito")],
+    ("bonificacao em ativos", "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.BONIFICACAO,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="nenhum",
+        eh_provento=False,
+        movimentacao_nome="bonificacao em ativos",
+    ),
+    ("compra", "credito"): EVENTOS[(TipoMovimentacao.COMPRA, "credito")],
+    ("desdobro", "credito"): EVENTOS[(TipoMovimentacao.DESDOBRAMENTO, "credito")],
+    ("direito de subscricao", "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.AJUSTE_QUANTIDADE,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="nenhum",
+        eh_provento=False,
+        movimentacao_nome="direito de subscricao",
+    ),
+    ("direitos de subscricao - nao exercido", "debito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.AJUSTE_QUANTIDADE,
+        sentido="debito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="nenhum",
+        eh_provento=False,
+        movimentacao_nome="direitos de subscricao - nao exercido",
+    ),
+    ("dividendo", "credito"): EVENTOS[(TipoMovimentacao.PROVENTO, "credito")],
+    ("dividendo - cancelado", "debito"): EVENTOS[(TipoMovimentacao.PROVENTO, "debito")],
+    ("fracao em ativos", "debito"): EVENTOS[(TipoMovimentacao.AJUSTE_QUANTIDADE, "debito")],
+    ("grupamento", "credito"): EVENTOS[(TipoMovimentacao.GRUPAMENTO, "credito")],
+    ("juros", "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.PROVENTO,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.NENHUMA,
+        efeito_custo="ignora",
+        eh_provento=True,
+        movimentacao_nome="juros",
+    ),
+    ("juros sobre capital proprio", "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.PROVENTO,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.NENHUMA,
+        efeito_custo="ignora",
+        eh_provento=True,
+        movimentacao_nome="juros sobre capital proprio",
+    ),
+    ("leilao de fracao", "credito"): EVENTOS[(TipoMovimentacao.AJUSTE_QUANTIDADE, "credito")],
+    ("rendimento", "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.PROVENTO,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.NENHUMA,
+        efeito_custo="ignora",
+        eh_provento=True,
+        movimentacao_nome="rendimento",
+    ),
+    ("resgate", "debito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.TRANSFERENCIA,
+        sentido="debito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="subtrai",
+        eh_provento=False,
+        movimentacao_nome="resgate",
+    ),
+    ("transferencia", "credito"): EVENTOS[(TipoMovimentacao.TRANSFERENCIA, "credito")],
+    ("transferencia", "debito"): EVENTOS[(TipoMovimentacao.TRANSFERENCIA, "debito")],
+    ("transferencia - liquidacao", "credito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.TRANSFERENCIA,
+        sentido="credito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="soma",
+        eh_provento=False,
+        movimentacao_nome="transferencia - liquidacao",
+    ),
+    ("transferencia - liquidacao", "debito"): EfeitoMovimentacao(
+        tipo=TipoMovimentacao.TRANSFERENCIA,
+        sentido="debito",
+        semantica_quantidade=SemanticaQuantidade.DELTA,
+        efeito_custo="subtrai",
+        eh_provento=False,
+        movimentacao_nome="transferencia - liquidacao",
+    ),
+    ("venda", "debito"): EVENTOS[(TipoMovimentacao.VENDA, "debito")],
+}
 
-EVENTOS: dict[tuple[str, str], EfeitoMovimentacao] = dict(
-    (
-        _efeito("amortizacao", "debito", "subtrai", "subtrai"),
-        _efeito("atualizacao", "credito", "define", "nenhum"),
-        _efeito("atualizacao", "debito", "define", "nenhum"),
-        _efeito("bonificacao", "credito", "soma", "nenhum"),
-        _efeito("bonificacao em ativos", "credito", "soma", "nenhum"),
-        _efeito("compra", "credito", "soma", "soma"),
-        _efeito("desdobro", "credito", "soma", "nenhum"),
-        _efeito("direito de subscricao", "credito", "soma", "nenhum"),
-        _efeito("direitos de subscricao - nao exercido", "debito", "subtrai", "nenhum"),
-        _efeito("dividendo", "credito", "ignora", "ignora", True),
-        _efeito("dividendo - cancelado", "debito", "ignora", "ignora"),
-        _efeito("fracao em ativos", "debito", "subtrai", "nenhum"),
-        _efeito("grupamento", "credito", "define", "nenhum"),
-        _efeito("juros", "credito", "ignora", "ignora", True),
-        _efeito("juros sobre capital proprio", "credito", "ignora", "ignora", True),
-        _efeito("leilao de fracao", "credito", "ignora", "nenhum"),
-        _efeito("rendimento", "credito", "ignora", "ignora", True),
-        _efeito("resgate", "debito", "subtrai", "subtrai"),
-        _efeito("transferencia", "credito", "soma", "soma"),
-        _efeito("transferencia", "debito", "subtrai", "subtrai"),
-        _efeito("transferencia - liquidacao", "credito", "soma", "soma"),
-        _efeito("transferencia - liquidacao", "debito", "subtrai", "subtrai"),
-        _efeito("venda", "debito", "subtrai", "subtrai"),
-    )
-)
+EVENTOS.update(_EFEITOS_ESPECIFICOS)
 
 
 def normalizar_chave_evento(movimentacao: object, entrada_saida: object) -> tuple[str, str]:
     return normalizar_texto(movimentacao), normalizar_texto(entrada_saida)
 
 
-def efeito_movimentacao(movimentacao: object, entrada_saida: object) -> EfeitoMovimentacao:
-    chave = normalizar_chave_evento(movimentacao, entrada_saida)
-    efeito = EVENTOS.get(chave)
-    if efeito is not None:
-        return efeito
+def efeito_movimentacao(
+    tipo_ou_movimentacao: object,
+    sentido_ou_entrada_saida: object,
+    qualidade: Any = None,
+) -> EfeitoMovimentacao:
+    sentido_norm = normalizar_texto(sentido_ou_entrada_saida)
+
+    if isinstance(tipo_ou_movimentacao, TipoMovimentacao):
+        chave_enum = (tipo_ou_movimentacao, sentido_norm)
+        if chave_enum in EVENTOS:
+            return EVENTOS[chave_enum]
+        tipo_str = tipo_ou_movimentacao.value
+    else:
+        tipo_str = normalizar_texto(tipo_ou_movimentacao)
+        chave_str = (tipo_str, sentido_norm)
+        if chave_str in EVENTOS:
+            return EVENTOS[chave_str]
+        tipo_enum = classificar_movimentacao(tipo_str)
+        chave_enum = (tipo_enum, sentido_norm)
+        if chave_enum in EVENTOS:
+            return EVENTOS[chave_enum]
 
     warnings.warn(
-        f"Movimentação com efeito pendente: movimentacao={movimentacao!r}, entrada_saida={entrada_saida!r}",
+        f"Movimentação com efeito pendente: movimentacao={tipo_ou_movimentacao!r}, entrada_saida={sentido_ou_entrada_saida!r}",
         RuntimeWarning,
         stacklevel=2,
     )
+    if qualidade is not None:
+        from dashboard.models.qualidade import Aviso
+
+        qualidade.add(
+            Aviso(
+                tipo="EVENTO_DESCONHECIDO",
+                produto=str(tipo_ou_movimentacao) if tipo_ou_movimentacao is not None else "",
+                detalhe=f"Evento sem efeito: ({tipo_ou_movimentacao!r}, {sentido_ou_entrada_saida!r})",
+            )
+        )
     return EfeitoMovimentacao(
-        movimentacao=chave[0],
-        entrada_saida=chave[1],
-        quantidade="pendente",
-        custo="pendente",
-        provento=False,
+        tipo=TipoMovimentacao.DESCONHECIDA,
+        sentido=sentido_norm,
+        semantica_quantidade=SemanticaQuantidade.NENHUMA,
+        efeito_custo="pendente",
+        eh_provento=False,
         status="pendente",
+        movimentacao_nome=tipo_str,
     )
 
 

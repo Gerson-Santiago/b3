@@ -12,6 +12,7 @@ from .catalogo import CATALOGO_ATIVOS
 from .efeitos import (
     EVENTOS,
     EfeitoMovimentacao,
+    SemanticaQuantidade,
     efeito_movimentacao,
     listar_movimentacoes_pendentes,
     normalizar_chave_evento,
@@ -51,6 +52,7 @@ __all__ = [
     "classificar_movimentacao",
     "is_provento",
     "is_ajuste_quantidade",
+    "SemanticaQuantidade",
     "EfeitoMovimentacao",
     "EVENTOS",
     "efeito_movimentacao",

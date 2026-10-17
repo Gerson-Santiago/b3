@@ -71,3 +71,43 @@ def test_listar_pendentes_e_flag():
     with pytest.warns(RuntimeWarning):
         assert tem_efeito_pendente(df) is True
     assert tem_efeito_pendente(pd.DataFrame()) is False
+
+
+def test_semantica_quantidade_enum():
+    from dashboard.models.efeitos import SemanticaQuantidade
+    assert set(SemanticaQuantidade.__members__.keys()) == {"DELTA", "TOTAL", "SNAPSHOT", "NENHUMA"}
+
+
+def test_efeito_movimentacao_campos_novos():
+    from dashboard.models.efeitos import SemanticaQuantidade
+    from dashboard.models.movimentacao import TipoMovimentacao
+    efeito = efeito_movimentacao("compra", "credito")
+    assert efeito.tipo == TipoMovimentacao.COMPRA
+    assert efeito.sentido == "credito"
+    assert efeito.semantica_quantidade == SemanticaQuantidade.DELTA
+    assert efeito.efeito_custo == "soma"
+    assert efeito.eh_provento is False
+    assert efeito.status == "definido"
+
+
+def test_todo_par_tipo_sentido_das_fixtures_tem_efeito():
+    from pathlib import Path
+    from dashboard.loaders.movimentacao import read_movimentacao_file
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "movimentacao_7_ativos.xlsx"
+    df = read_movimentacao_file(fixture_path)
+    for _, row in df.iterrows():
+        mov = row.get("movimentacao")
+        es = row.get("entrada_saida")
+        efeito = efeito_movimentacao(mov, es)
+        assert efeito.status == "definido", f"Par sem efeito: {mov} / {es}"
+
+
+def test_par_desconhecido_gera_aviso_em_relatorio_qualidade():
+    from dashboard.models.qualidade import RelatorioQualidade
+    rel = RelatorioQualidade()
+    with pytest.warns(RuntimeWarning):
+        efeito = efeito_movimentacao("evento_inexistente", "credito", qualidade=rel)
+    assert efeito.status == "pendente"
+    assert not rel.vazio
+    assert any(a.tipo == "EVENTO_DESCONHECIDO" for a in rel.avisos)
+
