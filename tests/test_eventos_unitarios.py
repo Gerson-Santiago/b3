@@ -111,3 +111,23 @@ def test_par_desconhecido_gera_aviso_em_relatorio_qualidade():
     assert not rel.vazio
     assert any(a.tipo == "EVENTO_DESCONHECIDO" for a in rel.avisos)
 
+
+def test_cada_valor_distinto_de_movimentacao_das_fixtures_resolve_para_tipo_com_efeito():
+    from pathlib import Path
+    from dashboard.loaders.movimentacao import read_movimentacao_file
+    from dashboard.models.movimentacao import TipoMovimentacao, classificar_movimentacao
+
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "movimentacao_7_ativos.xlsx"
+    df = read_movimentacao_file(fixture_path)
+    valores_mov = df["movimentacao"].dropna().unique()
+    assert len(valores_mov) > 0
+
+    for mov in valores_mov:
+        tipo = classificar_movimentacao(mov)
+        assert tipo != TipoMovimentacao.DESCONHECIDA, f"Movimentação não classificada: {mov}"
+        sentidos = df[df["movimentacao"] == mov]["entrada_saida"].unique()
+        for sentido in sentidos:
+            efeito = efeito_movimentacao(tipo, sentido)
+            assert efeito.status == "definido", f"Sem efeito para {tipo} / {sentido} (mov={mov})"
+
+

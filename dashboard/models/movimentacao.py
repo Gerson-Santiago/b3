@@ -19,34 +19,54 @@ class TipoMovimentacao(str, Enum):
     DESCONHECIDA = "desconhecida"
 
 
+CATALOGO_MOVIMENTACOES: dict[str, TipoMovimentacao] = {
+    # Proventos
+    "dividendo": TipoMovimentacao.PROVENTO,
+    "dividendo - cancelado": TipoMovimentacao.PROVENTO,
+    "juros": TipoMovimentacao.PROVENTO,
+    "juros sobre capital proprio": TipoMovimentacao.PROVENTO,
+    "jcp": TipoMovimentacao.PROVENTO,
+    "rendimento": TipoMovimentacao.PROVENTO,
+    "provento": TipoMovimentacao.PROVENTO,
+    "atualizacao": TipoMovimentacao.PROVENTO,
+    # Desdobramentos / Grupamentos
+    "desdobro": TipoMovimentacao.DESDOBRAMENTO,
+    "desdobro de acoes": TipoMovimentacao.DESDOBRAMENTO,
+    "split": TipoMovimentacao.DESDOBRAMENTO,
+    "grupamento": TipoMovimentacao.GRUPAMENTO,
+    "agrupamento": TipoMovimentacao.GRUPAMENTO,
+    # Bonificações
+    "bonificacao": TipoMovimentacao.BONIFICACAO,
+    "bonificacao em ativos": TipoMovimentacao.BONIFICACAO,
+    # Operações e Transferências
+    "compra": TipoMovimentacao.COMPRA,
+    "venda": TipoMovimentacao.VENDA,
+    "transferencia": TipoMovimentacao.TRANSFERENCIA,
+    "transferencia - liquidacao": TipoMovimentacao.TRANSFERENCIA,
+    "liquidacao": TipoMovimentacao.TRANSFERENCIA,
+    "resgate": TipoMovimentacao.TRANSFERENCIA,
+    "amortizacao": TipoMovimentacao.TRANSFERENCIA,
+    # Ajustes e frações
+    "fracao em ativos": TipoMovimentacao.AJUSTE_QUANTIDADE,
+    "leilao de fracao": TipoMovimentacao.AJUSTE_QUANTIDADE,
+    "direito de subscricao": TipoMovimentacao.AJUSTE_QUANTIDADE,
+    "direitos de subscricao - nao exercido": TipoMovimentacao.AJUSTE_QUANTIDADE,
+    "ajuste": TipoMovimentacao.AJUSTE_QUANTIDADE,
+}
+
+
 def classificar_movimentacao(texto: object) -> TipoMovimentacao:
     valor = normalizar_texto(texto)
     if not valor:
         return TipoMovimentacao.DESCONHECIDA
 
-    if any(padrao in valor for padrao in ["dividendo", "jcp", "juros", "rendimento", "provento", "atualizacao", "atualização"]):
-        return TipoMovimentacao.PROVENTO
+    tipo = CATALOGO_MOVIMENTACOES.get(valor)
+    if tipo is not None:
+        return tipo
 
-    if any(padrao in valor for padrao in ["desdobro", "split"]):
-        return TipoMovimentacao.DESDOBRAMENTO
-
-    if any(padrao in valor for padrao in ["grupamento", "agrupamento"]):
-        return TipoMovimentacao.GRUPAMENTO
-
-    if "bonific" in valor:
-        return TipoMovimentacao.BONIFICACAO
-
-    if any(padrao in valor for padrao in ["fracao", "fração", "leilao", "leilão", "ajuste", "facao"]):
-        return TipoMovimentacao.AJUSTE_QUANTIDADE
-
-    if "compra" in valor:
-        return TipoMovimentacao.COMPRA
-
-    if "venda" in valor:
-        return TipoMovimentacao.VENDA
-
-    if any(padrao in valor for padrao in ["liquidacao", "liquidação", "transferencia", "transferência"]):
-        return TipoMovimentacao.TRANSFERENCIA
+    for chave, tipo_cadastrado in CATALOGO_MOVIMENTACOES.items():
+        if valor.startswith(chave) or chave in valor:
+            return tipo_cadastrado
 
     return TipoMovimentacao.DESCONHECIDA
 
