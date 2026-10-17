@@ -6,57 +6,12 @@ from typing import Union
 
 import pandas as pd
 
+from dashboard.utils import parse_money
+
 try:
     from dashboard.columns import ALIASES_POS, normaliza_colunas
 except ImportError:  # pragma: no cover
     from columns import ALIASES_POS, normaliza_colunas
-
-
-def parse_money(value):
-    if value is None or pd.isna(value):
-        return pd.NA
-
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return float(value)
-
-    text = str(value).strip()
-    if not text:
-        return pd.NA
-
-    negative = False
-    if text.startswith("(") and text.endswith(")"):
-        negative = True
-        text = text[1:-1]
-
-    text = text.replace("R$", "").replace("USD", "").replace("BRL", "")
-    text = text.replace(" ", "")
-    text = text.replace("(", "").replace(")", "")
-
-    if "," in text and "." in text:
-        if text.rfind(",") > text.rfind("."):
-            text = text.replace(".", "").replace(",", ".")
-        else:
-            text = text.replace(",", "")
-    elif "," in text:
-        if len(text.split(",")[-1]) <= 2:
-            text = text.replace(",", ".")
-        else:
-            text = text.replace(",", "")
-    elif "." in text:
-        if text.count(".") > 1:
-            parts = text.split(".")
-            if len(parts[-1]) <= 2:
-                text = "".join(parts[:-1]) + "." + parts[-1]
-            else:
-                text = "".join(parts)
-        elif len(text.split(".")[-1]) > 2:
-            text = text.replace(".", "")
-
-    try:
-        number = float(text)
-        return -number if negative else number
-    except ValueError:
-        return pd.NA
 
 
 def _categorizar_sheet(sheet_name: str) -> str:
@@ -96,10 +51,7 @@ def read_posicao_excel(file_source: Union[str, Path, BytesIO, object]):
             df["valor_operacao"] = df["valor_operacao"].apply(parse_money)
 
         if "quantidade" in df.columns:
-            df["quantidade"] = pd.to_numeric(
-                df["quantidade"].astype(str).str.replace(".", "", regex=False).str.replace(",", ".", regex=False),
-                errors="coerce",
-            )
+            df["quantidade"] = df["quantidade"].apply(parse_money)
 
         for col in ["produto", "instituicao", "conta", "tipo", "escriturador"]:
             if col in df.columns:

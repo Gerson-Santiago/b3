@@ -6,57 +6,12 @@ from typing import Union
 
 import pandas as pd
 
+from dashboard.utils import parse_money
+
 try:
     from dashboard.columns import ALIASES_MOV, normaliza_colunas
 except ImportError:  # pragma: no cover
     from columns import ALIASES_MOV, normaliza_colunas
-
-
-def parse_money(value):
-    if value is None or pd.isna(value):
-        return pd.NA
-
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return float(value)
-
-    text = str(value).strip()
-    if not text:
-        return pd.NA
-
-    negative = False
-    if text.startswith("(") and text.endswith(")"):
-        negative = True
-        text = text[1:-1]
-
-    text = text.replace("R$", "").replace("USD", "").replace("BRL", "")
-    text = text.replace(" ", "")
-    text = text.replace("(", "").replace(")", "")
-
-    if "," in text and "." in text:
-        if text.rfind(",") > text.rfind("."):
-            text = text.replace(".", "").replace(",", ".")
-        else:
-            text = text.replace(",", "")
-    elif "," in text:
-        if len(text.split(",")[-1]) <= 2:
-            text = text.replace(",", ".")
-        else:
-            text = text.replace(",", "")
-    elif "." in text:
-        if text.count(".") > 1:
-            parts = text.split(".")
-            if len(parts[-1]) <= 2:
-                text = "".join(parts[:-1]) + "." + parts[-1]
-            else:
-                text = "".join(parts)
-        elif len(text.split(".")[-1]) > 2:
-            text = text.replace(".", "")
-
-    try:
-        number = float(text)
-        return -number if negative else number
-    except ValueError:
-        return pd.NA
 
 
 def _read_csv_with_encodings(path_or_buffer):
@@ -104,8 +59,8 @@ def _normalize_movimentacao_df(df):
 
     raw_data = df["data"].astype(str).str.strip()
     df["data"] = pd.to_datetime(raw_data, format="%d/%m/%Y", dayfirst=True, errors="coerce")
-    if df["data"].isna().all() and not raw_data.empty:
-        df["data"] = pd.to_datetime(raw_data, errors="coerce", dayfirst=True)
+    if df["data"].isna().any() and not raw_data.empty:
+        df["data"] = df["data"].fillna(pd.to_datetime(raw_data, format="mixed", dayfirst=True, errors="coerce"))
 
     for col in ["quantidade", "preco_unitario", "valor_operacao"]:
         df[col] = df[col].apply(parse_money)

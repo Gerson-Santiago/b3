@@ -8,6 +8,7 @@ from .position import (
 )
 from .preco_medio import compute_preco_medio
 from .proventos import compute_proventos
+from .reconciliacao import comparar, data_do_arquivo, quantidade_ate
 
 __all__ = [
     "classificar_ativo",
@@ -18,4 +19,7 @@ __all__ = [
     "compute_evolucao",
     "compute_dy",
     "compute_preco_medio",
+    "quantidade_ate",
+    "comparar",
+    "data_do_arquivo",
 ]
