@@ -4,11 +4,21 @@ from __future__ import annotations
 import streamlit as st
 
 try:
-    from dashboard.charts import pie_carteira, pie_carteira_por_categoria
+    from dashboard.charts import (
+        pie_carteira,
+        pie_carteira_por_categoria,
+        sunburst_carteira,
+        treemap_carteira,
+    )
     from dashboard.state import DashboardState
     from dashboard.views._helpers import render_section
 except ImportError:  # pragma: no cover
-    from charts import pie_carteira, pie_carteira_por_categoria
+    from charts import (
+        pie_carteira,
+        pie_carteira_por_categoria,
+        sunburst_carteira,
+        treemap_carteira,
+    )
     from state import DashboardState
     from views._helpers import render_section
 
@@ -19,21 +29,48 @@ def render(state: DashboardState) -> None:
         st.info("Nenhum ativo encontrado para os filtros selecionados.")
         return
 
-    separar = st.toggle(
-        "Separar BDR e Ações no gráfico de alocação",
-        value=False,
-        key="toggle_separar_bdr_acoes",
-    )
+    col_view, col_toggle = st.columns([3, 2])
+    with col_view:
+        tipo_grafico = st.radio(
+            "Visualização da Distribuição:",
+            options=[
+                "🌳 Mapa de Árvore (Treemap)",
+                "☀️ Gráfico de Hierarquia (Sunburst)",
+                "🥧 Gráficos de Pizza",
+            ],
+            horizontal=True,
+            key="radio_tipo_grafico_carteira",
+        )
+    with col_toggle:
+        separar = st.toggle(
+            "Separar BDR e Ações no gráfico de alocação",
+            value=False,
+            key="toggle_separar_bdr_acoes",
+        )
 
     pos_categoria_exibida = (
         state.pos_categoria if separar else state.pos_categoria_agrupada
     )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.plotly_chart(pie_carteira(state.pos), width="stretch")
-    with col2:
-        st.plotly_chart(pie_carteira_por_categoria(pos_categoria_exibida), width="stretch")
+    if tipo_grafico == "🌳 Mapa de Árvore (Treemap)":
+        st.plotly_chart(
+            treemap_carteira(state.pos, separar_bdr_acoes=separar),
+            width="stretch",
+        )
+    elif tipo_grafico == "☀️ Gráfico de Hierarquia (Sunburst)":
+        st.plotly_chart(
+            sunburst_carteira(state.pos, separar_bdr_acoes=separar),
+            width="stretch",
+        )
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.plotly_chart(pie_carteira(state.pos), width="stretch")
+        with col2:
+            st.plotly_chart(
+                pie_carteira_por_categoria(pos_categoria_exibida),
+                width="stretch",
+            )
 
     st.markdown("### Posição Detalhada em Custódia")
 

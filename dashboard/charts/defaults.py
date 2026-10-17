@@ -22,6 +22,7 @@ HEIGHT_PIE_SMALL = 380
 HEIGHT_BAR = 400
 HEIGHT_LINE = 400
 HEIGHT_LINE_COMPARATIVO = 430
+HEIGHT_TREEMAP = 460
 
 # ---------------------------------------------------------------------------
 # Paleta de cores
