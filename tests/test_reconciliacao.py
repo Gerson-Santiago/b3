@@ -95,7 +95,9 @@ def test_nubank_migration_rows_are_present_in_fixture_and_renamed_to_roxo34():
         "NUBR35 - NU HOLDINGS LTD.",
         "ROXO34 - NU HOLDINGS",
     ]
-    assert set(rows["produto"].map(ticker)) == {"NUBR33", "NUBR35", "ROXO34"}
+    # Com o catálogo único, ticker() retorna o código canônico: NUBR33 e NUBR35 → ROXO34
+    assert set(rows["produto"].map(ticker)) == {"ROXO34"}
+
 
 
 def test_quantidade_ate_warns_and_renames_nubank_transfer_without_double_counting():

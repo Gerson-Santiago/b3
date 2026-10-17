@@ -17,7 +17,7 @@ try:
     from dashboard.metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
     from dashboard.metrics.preco_medio import compute_preco_medio
     from dashboard.metrics.proventos import compute_proventos
-    from dashboard.models.ativos import renomear_ativo
+    from dashboard.models.ativos import ticker
     from dashboard.models.eventos import aplicar_eventos_ordenados
 except ImportError:  # pragma: no cover
     from filters import filtrar_dataframe
@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover
     from metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
     from metrics.preco_medio import compute_preco_medio
     from metrics.proventos import compute_proventos
-    from models.ativos import renomear_ativo
+    from models.ativos import ticker
     from models.eventos import aplicar_eventos_ordenados
 
 # Categorias que compõem "Bolsa de Valores" no gráfico agrupado
@@ -53,9 +53,9 @@ def _agrupar_bolsa(pos_categoria: pd.DataFrame) -> pd.DataFrame:
 def _enriquecer_pos_cards(pos: pd.DataFrame, pm_df: pd.DataFrame) -> pd.DataFrame:
     """Junta pos (valor atual do snapshot) com preco_medio/custo_total e deriva pl/variacao_pct.
 
-    O join é feito via ticker normalizado (renomear_ativo) porque pos.produto contém
-    o nome completo ("PETR4 - PETROBRAS") enquanto pm_df.produto contém o ticker
-    ("PETR4") — mesma lógica de normalização de eventos.py.
+    O join é feito via ticker() porque pos.produto contém o nome completo
+    ("PETR4 - PETROBRAS") enquanto pm_df.produto contém o ticker ("PETR4").
+    ticker() tem fallback regex para produtos fora do catálogo canônico.
     """
     if pos.empty:
         return pd.DataFrame(columns=["produto", "categoria", "quantidade", "valor_abs",
@@ -65,7 +65,7 @@ def _enriquecer_pos_cards(pos: pd.DataFrame, pm_df: pd.DataFrame) -> pd.DataFram
 
     if not pm_df.empty:
         # Chave de join: ticker normalizado dos dois lados
-        cards["_ticker"] = cards["produto"].apply(lambda p: renomear_ativo(p) or str(p).strip())
+        cards["_ticker"] = cards["produto"].apply(ticker)
         pm = pm_df[["produto", "preco_medio", "custo_total"]].copy()
         pm = pm.rename(columns={"produto": "_ticker"})
         cards = cards.merge(pm, on="_ticker", how="left").drop(columns=["_ticker"])
