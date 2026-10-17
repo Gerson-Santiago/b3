@@ -61,7 +61,11 @@ class DashboardState:
     pos_filtered: pd.DataFrame
     # Métricas calculadas
     proventos: pd.DataFrame
+    # Curva consolidada (Bolsa + Tesouro)
     evol_dict: dict
+    # Curvas segmentadas por produto — mesma estrutura de evol_dict
+    evol_bolsa: dict
+    evol_tesouro: dict
     dy_metrics: pd.DataFrame
 
     # ------------------------------------------------------------------
@@ -114,9 +118,39 @@ class DashboardState:
         pos_categoria_agrupada = _agrupar_bolsa(pos_categoria)
 
         proventos = compute_proventos(mov_filtered)
-        evol_dict = compute_evolucao_separada(
-            mov_filtered, [pos_df] if not pos_df.empty else []
+
+        pos_frames = [pos_df] if not pos_df.empty else []
+
+        # Consolidado — mesmo padrão já existente
+        evol_dict = compute_evolucao_separada(mov_filtered, pos_frames)
+
+        # Segmentado por produto: filtra mov_filtered pela categoria via mapa_cat
+        def _filtrar_mov(categorias: set[str]) -> pd.DataFrame:
+            if mov_filtered.empty or not mapa_cat or "produto" not in mov_filtered.columns:
+                return mov_filtered.iloc[0:0]  # DataFrame vazio com mesmas colunas
+            mask = mov_filtered["produto"].apply(
+                lambda p: str(mapa_cat.get(str(p or "").strip(), "")).upper()
+                in {c.upper() for c in categorias}
+            )
+            return mov_filtered[mask]
+
+        def _filtrar_pos(categorias: set[str]) -> list[pd.DataFrame]:
+            resultado = []
+            for frame in pos_frames:
+                if frame is None or frame.empty or "categoria" not in frame.columns:
+                    continue
+                filtrado = frame[frame["categoria"].str.upper().isin({c.upper() for c in categorias})]
+                if not filtrado.empty:
+                    resultado.append(filtrado)
+            return resultado
+
+        evol_bolsa = compute_evolucao_separada(
+            _filtrar_mov(_CATEGORIAS_BOLSA), _filtrar_pos(_CATEGORIAS_BOLSA)
         )
+        evol_tesouro = compute_evolucao_separada(
+            _filtrar_mov({"TESOURO"}), _filtrar_pos({"TESOURO"})
+        )
+
         dy_metrics = compute_dy_metrics(mov_filtered, pos_df, data_referencia=end_date)
 
         return cls(
@@ -127,5 +161,7 @@ class DashboardState:
             pos_filtered=pos_filtered,
             proventos=proventos,
             evol_dict=evol_dict,
+            evol_bolsa=evol_bolsa,
+            evol_tesouro=evol_tesouro,
             dy_metrics=dy_metrics,
         )

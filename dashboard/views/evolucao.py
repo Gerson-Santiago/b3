@@ -10,17 +10,50 @@ except ImportError:  # pragma: no cover
     from charts import line_comparativo_patrimonio_e_aportes
     from state import DashboardState
 
+# Opções de produto disponíveis no seletor
+_OPCOES_PRODUTO = [
+    "📈 Bolsa de Valores (Ações & BDR)",
+    "🏦 Tesouro Direto",
+    "🗂️ Consolidado",
+]
+
+# Mapeamento opção → chave no state
+_MAP_EVOL = {
+    "📈 Bolsa de Valores (Ações & BDR)": "bolsa",
+    "🏦 Tesouro Direto": "tesouro",
+    "🗂️ Consolidado": "consolidado",
+}
+
+# Mapeamento chave → atributo do DashboardState
+_MAP_STATE = {
+    "bolsa": "evol_bolsa",
+    "tesouro": "evol_tesouro",
+    "consolidado": "evol_dict",
+}
+
 
 def render(state: DashboardState) -> None:
     """Renderiza a aba Evolução & Aportes."""
     st.markdown("### Curva Comparativa de Patrimônio e Aportes")
+
+    produto_sel = st.radio(
+        "Produto:",
+        options=_OPCOES_PRODUTO,
+        horizontal=True,
+        key="radio_produto_evolucao",
+    )
+
+    chave = _MAP_EVOL[produto_sel]
+    evol = getattr(state, _MAP_STATE[chave])
+
     st.plotly_chart(
         line_comparativo_patrimonio_e_aportes(
-            state.evol_dict["curva_aportes"],
-            state.evol_dict["curva_patrimonio"],
+            evol["curva_aportes"],
+            evol["curva_patrimonio"],
         ),
         width="stretch",
     )
+
     if not state.mov_filtered.empty:
         st.markdown("### Detalhamento das Movimentações")
         st.dataframe(state.mov_filtered, width="stretch")

@@ -1,4 +1,6 @@
-from typing import Iterable, Sequence
+from __future__ import annotations
+
+from typing import Sequence
 import pandas as pd
 
 
