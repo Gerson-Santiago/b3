@@ -21,9 +21,12 @@ from dashboard.metrics import (
 )
 
 
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+
+
 class B3ArchitectureTest(unittest.TestCase):
     def test_movimentacao_has_expected_columns(self):
-        file_path = sorted((Path(__file__).resolve().parents[1] / "xlsx" / "movimentacao").glob("*.xlsx"))[-1]
+        file_path = FIXTURES_DIR / "movimentacao_7_ativos.xlsx"
         df = read_movimentacao_file(file_path)
         self.assertIn("entrada_saida", df.columns)
         self.assertIn("data", df.columns)
@@ -31,7 +34,7 @@ class B3ArchitectureTest(unittest.TestCase):
         self.assertIn("valor_operacao", df.columns)
 
     def test_posicao_has_expected_columns(self):
-        file_path = sorted((Path(__file__).resolve().parents[1] / "xlsx" / "posicao").glob("*.xlsx"))[-1]
+        file_path = FIXTURES_DIR / "posicao_7_ativos.xlsx"
         df = read_posicao_file(file_path)
         self.assertIn("produto", df.columns)
         self.assertIn("quantidade", df.columns)
@@ -40,15 +43,14 @@ class B3ArchitectureTest(unittest.TestCase):
         self.assertFalse(df["produto"].astype(str).str.lower().str.contains("total").any())
 
     def test_default_data_prefers_xlsx_files(self):
-        base_dir = Path(__file__).resolve().parents[1]
-        movimentacao_xlsx = sorted((base_dir / "xlsx" / "movimentacao").glob("*.xlsx"))[-1]
-        posicao_xlsx = sorted((base_dir / "xlsx" / "posicao").glob("*.xlsx"))[-1]
+        movimentacao_xlsx = FIXTURES_DIR / "movimentacao_7_ativos.xlsx"
+        posicao_xlsx = FIXTURES_DIR / "posicao_7_ativos.xlsx"
 
-        with patch.object(app, "read_movimentacao_file", side_effect=lambda path: pd.DataFrame({"data": [pd.Timestamp("2026-10-16")], "valor_operacao": [1.0]})) as mock_mov:
+        with patch.object(app, "find_latest", side_effect=lambda folder, prefix: movimentacao_xlsx if "movimentacao" in prefix else posicao_xlsx), patch.object(app, "read_movimentacao_file", side_effect=lambda path: pd.DataFrame({"data": [pd.Timestamp("2026-10-16")], "valor_operacao": [1.0]})) as mock_mov:
             app.load_default_movimentacao()
             self.assertTrue(any(str(call.args[0]).endswith(str(movimentacao_xlsx)) for call in mock_mov.call_args_list))
 
-        with patch.object(app, "read_posicao_file", side_effect=lambda path: pd.DataFrame({"produto": ["PETR4"], "categoria": ["ACOES"], "data": [pd.Timestamp("2026-10-16")]})) as mock_pos:
+        with patch.object(app, "find_latest", side_effect=lambda folder, prefix: posicao_xlsx), patch.object(app, "read_posicao_file", side_effect=lambda path: pd.DataFrame({"produto": ["PETR4"], "categoria": ["ACOES"], "data": [pd.Timestamp("2026-10-16")]})) as mock_pos:
             app.load_default_posicao()
             self.assertTrue(any(str(call.args[0]).endswith(str(posicao_xlsx)) for call in mock_pos.call_args_list))
 
@@ -159,7 +161,7 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
         self.assertAlmostEqual(petr["preco_medio"], 32.61, places=2)
 
     def test_compute_preco_medio_googl35_uses_real_xlsx_fixture_and_corporate_events(self):
-        path = Path(__file__).resolve().parents[1] / "xlsx" / "movimentacao" / "movimentacao-2026-10-16-20-22-00.xlsx"
+        path = FIXTURES_DIR / "movimentacao_7_ativos.xlsx"
         df = read_movimentacao_file(path)
         googl = df[df["produto"].astype(str).str.contains("GOGL35", case=False, na=False)].copy()
         googl = googl.sort_values("data", kind="mergesort")
@@ -340,8 +342,7 @@ class B3LoaderAndMetricsTest(unittest.TestCase):
 
     def test_read_b3_file_dispatches_csv_and_xlsx(self):
         import tempfile
-        base_dir = Path(__file__).resolve().parents[1]
-        xlsx_path = sorted((base_dir / "xlsx" / "posicao").glob("*.xlsx"))[-1]
+        xlsx_path = FIXTURES_DIR / "posicao_7_ativos.xlsx"
         xlsx_df = read_b3_file(xlsx_path)
         self.assertIn("categoria", xlsx_df.columns)
 

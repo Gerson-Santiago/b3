@@ -21,21 +21,27 @@ def _normalizar_produto(valor):
     return texto.strip().upper()
 
 
-def test_regressao_preco_medio_7_ativos_base_real():
+@pytest.mark.parametrize(
+    "codigo, valores",
+    [
+        pytest.param("B3SA3", json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))["B3SA3"], id="B3SA3"),
+        pytest.param("PETR4", json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))["PETR4"], id="PETR4"),
+        pytest.param("VALE3", json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))["VALE3"], id="VALE3"),
+        pytest.param("CPFE3", json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))["CPFE3"], id="CPFE3"),
+        pytest.param("MSFT34", json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))["MSFT34"], id="MSFT34"),
+        pytest.param("GOGL35", json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))["GOGL35"], id="GOGL35"),
+        pytest.param("ROXO34", {"quantidade": -1.0, "preco_medio": -1.0}, marks=pytest.mark.xfail(strict=True, reason="saldo sem origem no histórico"), id="ROXO34"),
+    ],
+)
+def test_regressao_preco_medio_7_ativos_base_real(codigo, valores):
     mov = read_movimentacao_file(MOV_FIXTURE_PATH)
 
     atual = compute_preco_medio(mov).copy()
     atual["produto_norm"] = atual["produto"].map(_normalizar_produto)
 
-    esperado = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    linha = atual[atual["produto_norm"] == codigo]
+    assert not linha.empty, f"Produto ausente no cálculo atual: {codigo}"
+    atual_linha = linha.iloc[0]
 
-    for codigo, valores in esperado.items():
-        if codigo == "ROXO34":
-            pytest.xfail(reason="saldo sem origem no histórico")
-
-        linha = atual[atual["produto_norm"] == codigo]
-        assert not linha.empty, f"Produto ausente no cálculo atual: {codigo}"
-        atual_linha = linha.iloc[0]
-
-        assert float(atual_linha["quantidade"]) == pytest.approx(float(valores["quantidade"]), abs=1e-9)
-        assert float(atual_linha["preco_medio"]) == pytest.approx(float(valores["preco_medio"]), rel=1e-9, abs=1e-9)
+    assert float(atual_linha["quantidade"]) == pytest.approx(float(valores["quantidade"]), abs=1e-9)
+    assert float(atual_linha["preco_medio"]) == pytest.approx(float(valores["preco_medio"]), rel=1e-9, abs=1e-9)
