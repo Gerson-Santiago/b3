@@ -1,23 +1,33 @@
 import plotly.express as px
+from .base import aplicar_layout_padrao
 
 
 def bar_proventos(proventos):
-    return px.bar(
+    fig = px.bar(
         proventos,
         x="mes",
         y="valor_liquido",
-        title="Proventos por mês",
-        labels={"mes": "Mês", "valor_liquido": "Valor"},
-        color_discrete_sequence=["#2ecc71"],
+        title="Histórico Mensal de Proventos Recebidos",
+        labels={"mes": "Mês de Pagamento", "valor_liquido": "Proventos Líquidos (R$)"},
+        color_discrete_sequence=["#10b981"],
     )
+    fig.update_traces(
+        hovertemplate="<b>Mês:</b> %{x}<br><b>Recebido:</b> R$ %{y:,.2f}<extra></extra>"
+    )
+    return aplicar_layout_padrao(fig, altura=400, legenda_horizontal=False)
 
 
 def bar_dy(dy):
-    return px.bar(
+    y_col = "dy_ltm_pct" if "dy_ltm_pct" in dy.columns else "dy_pct"
+    fig = px.bar(
         dy,
         x="produto",
-        y="dy_pct",
-        title="Dividend Yield estimado por ativo",
-        labels={"produto": "Ativo", "dy_pct": "DY (%)"},
-        color_discrete_sequence=["#5dade2"],
+        y=y_col,
+        title="Dividend Yield LTM por Ativo (%)",
+        labels={"produto": "Ativo", y_col: "Dividend Yield (%)"},
+        color_discrete_sequence=["#0284c7"],
     )
+    fig.update_traces(
+        hovertemplate="<b>Ativo:</b> %{x}<br><b>DY LTM:</b> %{y:.2f}%<extra></extra>"
+    )
+    return aplicar_layout_padrao(fig, altura=400, legenda_horizontal=False)

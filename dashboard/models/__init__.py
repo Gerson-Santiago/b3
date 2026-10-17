@@ -1,5 +1,4 @@
-from .ativo import Ativo
-from .ativos import RENOMEACAO_ATIVOS, renomear_ativo, ticker
+from .ativos import Ativo, RENOMEACAO_ATIVOS, renomear_ativo, ticker
 from .eventos import (
     EfeitoMovimentacao,
     EVENTOS,

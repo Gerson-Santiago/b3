@@ -1,21 +1,74 @@
-import re
+from __future__ import annotations
 
 import pandas as pd
 
+from dashboard.models.ativos import renomear_ativo, ticker
 
-def classificar_ativo(produto):
+
+def obter_mapa_categorias(pos_df: pd.DataFrame) -> dict[str, str]:
+    if pos_df is None or pos_df.empty or "categoria" not in pos_df.columns:
+        return {}
+
+    mapa: dict[str, str] = {}
+    for _, row in pos_df.iterrows():
+        prod = str(row.get("produto") or "").strip()
+        cat = str(row.get("categoria") or "").strip()
+        if not prod or not cat:
+            continue
+        tick = ticker(prod)
+        if tick:
+            mapa[tick] = cat
+            mapa[renomear_ativo(tick)] = cat
+        mapa[prod] = cat
+        mapa[prod.upper()] = cat
+
+    return mapa
+
+
+mapear_categorias_posicao = obter_mapa_categorias
+
+
+def classificar_ativo_por_mapa(produto: object, mapa_categorias: dict[str, str] | None = None) -> str:
+    if not mapa_categorias:
+        return "Não classificado"
+
+    texto = str(produto or "").strip()
+    if not texto:
+        return "Não classificado"
+
+    if texto in mapa_categorias:
+        return mapa_categorias[texto]
+
+    if texto.upper() in mapa_categorias:
+        return mapa_categorias[texto.upper()]
+
+    tick = ticker(texto)
+    if tick in mapa_categorias:
+        return mapa_categorias[tick]
+
+    renomeado = renomear_ativo(tick)
+    if renomeado in mapa_categorias:
+        return mapa_categorias[renomeado]
+
+    return "Não classificado"
+
+
+obter_categoria_ativo = classificar_ativo_por_mapa
+
+
+
+def classificar_ativo(produto, mapa_categorias: dict[str, str] | None = None):
+    if mapa_categorias:
+        return classificar_ativo_por_mapa(produto, mapa_categorias)
+
     texto = str(produto or "").upper().strip()
     if not texto:
-        return "ACOES"
-
+        return "Não classificado"
     if "TESOURO" in texto:
         return "TESOURO"
-    if "BDR" in texto:
-        return "BDR"
 
-    # BDRs no Brasil normalmente usam tickers como GOGL35, MSFT34, AAPL34, ROXO34,
-    # e não trazem a palavra "BDR" no código do ativo.
-    if re.fullmatch(r"[A-Z]{2,8}\d{2}", texto):
+    tick = ticker(texto)
+    if tick in {"GOGL35", "MSFT34", "AAPL34", "ROXO34", "NUBR33", "NUBR35", "TSLA34", "COCA34"}:
         return "BDR"
 
     return "ACOES"

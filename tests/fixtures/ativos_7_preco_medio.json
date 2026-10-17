@@ -4,6 +4,6 @@
   "VALE3": {"quantidade": 12.0, "preco_medio": 66.47583333333334},
   "CPFE3": {"quantidade": 3.0, "preco_medio": 30.78},
   "MSFT34": {"quantidade": 11.0, "preco_medio": 71.89999999999999},
-  "ROXO34": {"quantidade": 0.0, "preco_medio": 0.0},
+  "ROXO34": {"quantidade": 20.0, "preco_medio": null},
   "GOGL35": {"quantidade": 17.0, "preco_medio": 63.778409090909086}
 }

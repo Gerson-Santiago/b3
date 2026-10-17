@@ -4,17 +4,25 @@ import pandas as pd
 import streamlit as st
 
 try:
-    from dashboard.charts import bar_dy, bar_proventos, line_evolucao, pie_carteira, pie_carteira_por_categoria, pie_categoria
+    from dashboard.charts import bar_dy, bar_proventos, line_comparativo_patrimonio_e_aportes, line_evolucao, pie_carteira, pie_carteira_por_categoria, pie_categoria
     from dashboard.loaders.movimentacao import read_movimentacao_file
     from dashboard.loaders.posicao import read_posicao_file
-    from dashboard.metrics import compute_dy, compute_evolucao, compute_position, compute_position_categoria, compute_position_por_categoria, compute_proventos
+    from dashboard.metrics import compute_dy, compute_evolucao, compute_position, compute_position_categoria, compute_proventos
+    from dashboard.metrics.dy import compute_dy_metrics
+    from dashboard.metrics.evolucao import compute_evolucao_separada
+    from dashboard.metrics.position import obter_mapa_categorias, classificar_ativo_por_mapa
+    from dashboard.metrics.reconciliacao import comparar, quantidade_ate
     from dashboard.models.eventos import listar_movimentacoes_pendentes
     from dashboard.utils import find_latest
 except ImportError:  # pragma: no cover
-    from charts import bar_dy, bar_proventos, line_evolucao, pie_carteira, pie_carteira_por_categoria, pie_categoria
+    from charts import bar_dy, bar_proventos, line_comparativo_patrimonio_e_aportes, line_evolucao, pie_carteira, pie_carteira_por_categoria, pie_categoria
     from loaders.movimentacao import read_movimentacao_file
     from loaders.posicao import read_posicao_file
-    from metrics import compute_dy, compute_evolucao, compute_position, compute_position_categoria, compute_position_por_categoria, compute_proventos
+    from metrics import compute_dy, compute_evolucao, compute_position, compute_position_categoria, compute_proventos
+    from metrics.dy import compute_dy_metrics
+    from metrics.evolucao import compute_evolucao_separada
+    from metrics.position import obter_mapa_categorias, classificar_ativo_por_mapa
+    from metrics.reconciliacao import comparar, quantidade_ate
     from models.eventos import listar_movimentacoes_pendentes
     from utils import find_latest
 
@@ -95,15 +103,19 @@ def main():
 
     selected_instituicao = st.sidebar.multiselect("Instituição", instituicoes)
     selected_produto = st.sidebar.multiselect("Produto", produtos)
-    start_date, end_date = st.sidebar.date_input(
+    periodo = st.sidebar.date_input(
         "Período",
         value=(min_date, max_date),
         min_value=min_date,
         max_value=max_date,
     )
 
-    if isinstance(start_date, tuple):
-        start_date, end_date = start_date
+    if isinstance(periodo, (list, tuple)):
+        start_date = periodo[0]
+        end_date = periodo[1] if len(periodo) > 1 else periodo[0]
+    else:
+        start_date = periodo
+        end_date = periodo
 
     if not mov_df.empty:
         mov_filtered = mov_df.copy()
@@ -117,8 +129,6 @@ def main():
 
     if not pos_df.empty:
         pos_filtered = pos_df.copy()
-        if "data" in pos_filtered.columns:
-            pos_filtered = pos_filtered[(pos_filtered["data"] >= pd.Timestamp(start_date)) & (pos_filtered["data"] <= pd.Timestamp(end_date))]
         if selected_instituicao:
             pos_filtered = pos_filtered[pos_filtered["instituicao"].isin(selected_instituicao)]
         if selected_produto:
@@ -126,73 +136,89 @@ def main():
     else:
         pos_filtered = pd.DataFrame()
 
+    # SSOT de categorias
+    mapa_cat = obter_mapa_categorias(pos_df) if not pos_df.empty else {}
+
+    # Posição consolidada
     pos = compute_position(pos_filtered if not pos_filtered.empty else mov_filtered)
-    pos_categoria = compute_position_categoria(pos_filtered if not pos_filtered.empty else mov_filtered)
-    pos_bdr = compute_position_por_categoria(pos_filtered if not pos_filtered.empty else mov_filtered, "BDR")
-    pos_acoes = compute_position_por_categoria(pos_filtered if not pos_filtered.empty else mov_filtered, "ACOES")
-    pos_tesouro = compute_position_por_categoria(pos_filtered if not pos_filtered.empty else mov_filtered, "TESOURO")
+    if not pos.empty:
+        pos["categoria"] = pos["produto"].apply(lambda p: classificar_ativo_por_mapa(p, mapa_cat))
+        pos_categoria = (
+            pos.groupby("categoria", as_index=False)
+            .agg(valor=("valor_abs", "sum"), quantidade=("quantidade", "sum"))
+            .sort_values("valor", ascending=False)
+        )
+    else:
+        pos_categoria = pd.DataFrame(columns=["categoria", "valor", "quantidade"])
+
     proventos = compute_proventos(mov_filtered)
-    evol = compute_evolucao(mov_filtered)
-    dy = compute_dy(mov_filtered)
+    evol_dict = compute_evolucao_separada(mov_filtered, [pos_df] if not pos_df.empty else [])
+    dy_metrics = compute_dy_metrics(mov_filtered, pos_df, data_referencia=end_date)
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Movimentações", f"{len(mov_filtered):,}" if not mov_filtered.empty else "0")
-    col2.metric("Valor líquido total", f"R$ {mov_filtered['valor_liquido'].sum():,.2f}" if not mov_filtered.empty else "R$ 0,00")
-    col3.metric("Ativos na carteira", f"{pos['produto'].nunique():,}" if not pos.empty else "0")
+    col1.metric("Movimentações Filtradas", f"{len(mov_filtered):,}" if not mov_filtered.empty else "0")
+    col2.metric("Fluxo Líquido Filtrado", f"R$ {mov_filtered['valor_liquido'].sum():,.2f}" if not mov_filtered.empty else "R$ 0,00")
+    col3.metric("Ativos em Custódia", f"{pos['produto'].nunique():,}" if not pos.empty else "0")
 
-    st.subheader("Carteira")
-    if pos.empty:
-        st.info("Nenhum ativo encontrado para o filtro selecionado.")
-    else:
-        col_pie1, col_pie2 = st.columns(2)
-        with col_pie1:
-            st.plotly_chart(pie_carteira(pos), width="stretch")
-        with col_pie2:
-            st.plotly_chart(pie_carteira_por_categoria(pos_categoria), width="stretch")
+    tab_carteira, tab_proventos, tab_evolucao, tab_reconciliacao = st.tabs(
+        ["📊 Carteira & Alocação", "💰 Proventos & Renda", "📈 Evolução & Aportes", "⚖️ Reconciliação B3"]
+    )
 
-        st.markdown("### Distribuição por categoria")
-        pie_cols = st.columns(3)
-        with pie_cols[0]:
-            if pos_bdr.empty:
-                st.info("Sem BDR")
+    with tab_carteira:
+        if pos.empty:
+            st.info("Nenhum ativo encontrado para os filtros selecionados.")
+        else:
+            col_pie1, col_pie2 = st.columns(2)
+            with col_pie1:
+                st.plotly_chart(pie_carteira(pos), width="stretch")
+            with col_pie2:
+                st.plotly_chart(pie_carteira_por_categoria(pos_categoria), width="stretch")
+
+            st.markdown("### Posição Detalhada em Custódia")
+            st.dataframe(pos, width="stretch")
+
+            if not pos_filtered.empty:
+                st.caption("ℹ️ Dados baseados no snapshot de custódia mais recente da B3.")
+
+    with tab_proventos:
+        if proventos.empty:
+            st.info("Não há proventos registrados no período selecionado.")
+        else:
+            st.plotly_chart(bar_proventos(proventos), width="stretch")
+
+        st.markdown("### Métricas de Dividend Yield (LTM) & Yield on Cost")
+        if dy_metrics.empty:
+            st.info("Sem dados suficientes para cálculo de Dividend Yield.")
+        else:
+            st.plotly_chart(bar_dy(dy_metrics), width="stretch")
+            st.dataframe(
+                dy_metrics[["ticker", "valor_atual", "custo_total", "proventos_12m", "dy_ltm_pct", "yield_on_cost_pct"]],
+                width="stretch",
+            )
+
+    with tab_evolucao:
+        st.markdown("### Curva Comparativa de Patrimônio e Aportes")
+        st.plotly_chart(
+            line_comparativo_patrimonio_e_aportes(evol_dict["curva_aportes"], evol_dict["curva_patrimonio"]),
+            width="stretch",
+        )
+        if not mov_filtered.empty:
+            st.markdown("### Detalhamento das Movimentações")
+            st.dataframe(mov_filtered, width="stretch")
+
+    with tab_reconciliacao:
+        st.markdown("### Auditoria de Reconciliação (Movimentações vs Posição)")
+        if not mov_df.empty and not pos_df.empty:
+            qtd_calculada = quantidade_ate(mov_df, end_date)
+            tabela_conciliacao = comparar(qtd_calculada, pos_df)
+            st.dataframe(tabela_conciliacao, width="stretch")
+            deltas_divergentes = tabela_conciliacao[tabela_conciliacao["delta"].abs() > 1e-4]
+            if deltas_divergentes.empty:
+                st.success("✅ Todos os ativos auditados estão 100% conciliados com o extrato da B3.")
             else:
-                st.plotly_chart(pie_categoria(pos_bdr), width="stretch")
-        with pie_cols[1]:
-            if pos_acoes.empty:
-                st.info("Sem Ações")
-            else:
-                st.plotly_chart(pie_categoria(pos_acoes), width="stretch")
-        with pie_cols[2]:
-            if pos_tesouro.empty:
-                st.info("Sem Tesouro Direto")
-            else:
-                st.plotly_chart(pie_categoria(pos_tesouro), width="stretch")
-
-    st.subheader("Proventos por mês")
-    if proventos.empty:
-        st.info("Não há proventos no período selecionado.")
-    else:
-        st.plotly_chart(bar_proventos(proventos), width="stretch")
-
-    st.subheader("Evolução do patrimônio")
-    if evol.empty:
-        st.info("Sem histórico de movimentação para a seleção atual.")
-    else:
-        st.plotly_chart(line_evolucao(evol), width="stretch")
-
-    st.subheader("DY estimado")
-    if dy.empty:
-        st.info("Sem dados de DY para o filtro atual.")
-    else:
-        st.plotly_chart(bar_dy(dy), width="stretch")
-
-    if not mov_filtered.empty:
-        st.subheader("Detalhes da movimentação")
-        st.dataframe(mov_filtered, width="stretch")
-
-    if not pos_filtered.empty:
-        st.subheader("Posição atual")
-        st.dataframe(pos_filtered, width="stretch")
+                st.warning(f"⚠️ {len(deltas_divergentes)} ativo(s) com divergência entre movimentações e posição.")
+        else:
+            st.info("Carregue tanto a movimentação quanto a posição para conferência de reconciliação.")
 
 
 if __name__ == "__main__":
