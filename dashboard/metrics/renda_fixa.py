@@ -73,13 +73,14 @@ RENDA_FIXA = {
 }
 
 VENCIMENTOS_RENDA_FIXA = {
-    v["tipo"]: {
+    t: {
         k: v["vencimento_str"]
         for k, v in METADADOS_TESOURO.items()
         if v["tipo"] == t
     }
     for t in {"tesouro-pos-fixado-ipca", "tesouro-pos-fixado-selic", "tesouro-prefixado"}
 }
+
 
 
 def filtrar_por_indexador(indexador: str) -> list[str]:
