@@ -5,7 +5,13 @@ from .lines import (
     line_evolucao,
     line_rentabilidade_acumulada,
 )
-from .pie import agrupar_posicao_outros, pie_carteira, pie_carteira_por_categoria, pie_categoria
+from .pie import (
+    agrupar_posicao_outros,
+    pie_carteira,
+    pie_carteira_por_categoria,
+    pie_categoria,
+    pie_macro_alocacao,
+)
 from .treemap import sunburst_carteira, treemap_carteira
 from .defaults import (
     COLOR_DIVIDENDO,
@@ -21,6 +27,7 @@ __all__ = [
     "pie_carteira",
     "pie_carteira_por_categoria",
     "pie_categoria",
+    "pie_macro_alocacao",
     "treemap_carteira",
     "sunburst_carteira",
     "bar_proventos",

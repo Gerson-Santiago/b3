@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from dashboard.models.resumo import ResumoAlocacao, ResumoMacro
+from dashboard.models.resumo import ResumoAlocacao, ResumoCarteira, ResumoMacro
 from dashboard.state import DashboardState
 from dashboard.views.carteira import (
     _render_alocacao_macro,
@@ -17,14 +17,14 @@ from dashboard.views.carteira import (
 
 @pytest.fixture()
 def state_mock():
-    s = DashboardState()
-    s.resumo = ResumoAlocacao(
-        bolsa=ResumoMacro(patrimonio=10000.0, custo=8000.0, pl=2000.0, pl_pct=25.0, peso_pct=66.7),
-        tesouro=ResumoMacro(patrimonio=5000.0, custo=4500.0, pl=500.0, pl_pct=11.1, peso_pct=33.3),
+    s = MagicMock(spec=DashboardState)
+    s.resumo = ResumoCarteira(
+        bolsa=ResumoMacro(nome="Bolsa de Valores", patrimonio=10000.0, custo=8000.0, pl=2000.0, pl_pct=25.0, peso_pct=66.7),
+        tesouro=ResumoMacro(nome="Tesouro Direto", patrimonio=5000.0, custo=4500.0, pl=500.0, pl_pct=11.1, peso_pct=33.3),
         patrimonio_total=15000.0,
         custo_total=12500.0,
         pl_total=2500.0,
-        pl_total_pct=20.0,
+        pl_pct=20.0,
     )
     s.pos = pd.DataFrame(
         {
@@ -47,6 +47,7 @@ def state_mock():
     s.pos_5_classes = pd.DataFrame(
         {
             "classe": ["Ações", "Tesouro Direto"],
+            "categoria": ["Ações", "Tesouro Direto"],
             "valor": [10000.0, 5000.0],
             "peso_pct": [66.7, 33.3],
         }
@@ -84,7 +85,7 @@ def state_mock():
 
 @patch("streamlit.info")
 def test_render_vazio(mock_info):
-    s = DashboardState()
+    s = MagicMock(spec=DashboardState)
     s.pos = pd.DataFrame()
     render(s)
     mock_info.assert_called_with("Nenhum ativo encontrado para os filtros selecionados.")
@@ -161,4 +162,22 @@ def test_render_com_dados_treemap(
 ):
     mock_cols.side_effect = lambda spec: [MagicMock() for _ in range(spec if isinstance(spec, int) else len(spec))]
     render(state_mock)
+    assert mock_chart.called
+
+
+@patch("streamlit.plotly_chart")
+@patch("streamlit.columns")
+@patch("streamlit.metric")
+@patch("streamlit.caption")
+@patch("streamlit.markdown")
+def test_render_alocacao_macro_donut(
+    mock_md,
+    mock_caption,
+    mock_metric,
+    mock_cols,
+    mock_chart,
+    state_mock,
+):
+    mock_cols.side_effect = lambda spec: [MagicMock() for _ in range(spec if isinstance(spec, int) else len(spec))]
+    _render_alocacao_macro(state_mock)
     assert mock_chart.called

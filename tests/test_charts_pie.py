@@ -19,8 +19,10 @@ from dashboard.charts.pie import (
     pie_carteira,
     pie_carteira_por_categoria,
     pie_categoria,
+    pie_macro_alocacao,
 )
-from dashboard.charts.defaults import HEIGHT_PIE, HEIGHT_PIE_SMALL
+from dashboard.charts.defaults import HEIGHT_DONUT_MACRO, HEIGHT_PIE, HEIGHT_PIE_SMALL
+from dashboard.models.resumo import ResumoCarteira, ResumoMacro
 
 
 # ---------------------------------------------------------------------------
@@ -215,5 +217,50 @@ class TestAgruparPosicaoOutros:
         assert fig.layout.legend.orientation == "v"
         assert len(fig.layout.annotations) > 0
         assert "Total" in fig.layout.annotations[0].text
+
+
+# ---------------------------------------------------------------------------
+# pie_macro_alocacao
+# ---------------------------------------------------------------------------
+
+
+class TestPieMacroAlocacao:
+    def test_macro_valido(self):
+        res = ResumoCarteira(
+            patrimonio_total=100000.0,
+            bolsa=ResumoMacro(nome="Bolsa de Valores", patrimonio=78100.0, peso_pct=78.1),
+            tesouro=ResumoMacro(nome="Tesouro Direto", patrimonio=21900.0, peso_pct=21.9),
+        )
+        fig = pie_macro_alocacao(res)
+        assert isinstance(fig, go.Figure)
+        assert len(fig.data) == 1
+        assert fig.data[0].hole == 0.45
+        labels = list(fig.data[0].labels)
+        assert "Bolsa de Valores" in labels
+        assert "Tesouro Direto" in labels
+        assert len(fig.layout.annotations) > 0
+        assert "Total" in fig.layout.annotations[0].text
+        assert "100,000.00" in fig.layout.annotations[0].text
+
+    def test_macro_apenas_bolsa(self):
+        res = ResumoCarteira(
+            patrimonio_total=50000.0,
+            bolsa=ResumoMacro(nome="Bolsa de Valores", patrimonio=50000.0, peso_pct=100.0),
+            tesouro=ResumoMacro(nome="Tesouro Direto", patrimonio=0.0, peso_pct=0.0),
+        )
+        fig = pie_macro_alocacao(res)
+        assert isinstance(fig, go.Figure)
+        assert len(fig.data) == 1
+        assert list(fig.data[0].labels) == ["Bolsa de Valores"]
+
+    def test_macro_vazio_ou_nulo(self):
+        fig_none = pie_macro_alocacao(None)
+        assert isinstance(fig_none, go.Figure)
+        assert len(fig_none.data) == 0
+
+        res_zero = ResumoCarteira()
+        fig_zero = pie_macro_alocacao(res_zero)
+        assert isinstance(fig_zero, go.Figure)
+        assert len(fig_zero.data) == 0
 
 

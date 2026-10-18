@@ -37,6 +37,10 @@ class ResumoCarteira:
     tesouro: ResumoMacro = ResumoMacro(nome=LABEL_TESOURO)
 
 
+# Alias para retrocompatibilidade semântica
+ResumoAlocacao = ResumoCarteira
+
+
 def _calcular_macro(
     df_cards: pd.DataFrame,
     nome: str,

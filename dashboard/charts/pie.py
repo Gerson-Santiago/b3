@@ -5,7 +5,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from .base import aplicar_layout_padrao
-from .defaults import HEIGHT_PIE, HEIGHT_PIE_SMALL, PIE_COLOR_SEQUENCE
+from .defaults import (
+    HEIGHT_DONUT_MACRO,
+    HEIGHT_PIE,
+    HEIGHT_PIE_SMALL,
+    MACRO_COLOR_SEQUENCE,
+    PIE_COLOR_SEQUENCE,
+)
 
 _HOVERTEMPLATE = (
     "<b>%{label}</b><br>Valor: R$ %{value:,.2f}<br>Participação: %{percent}<extra></extra>"
@@ -65,6 +71,7 @@ def _criar_donut(
     titulo: str,
     height: int,
     mostrar_total_centro: bool = True,
+    cores: list[str] | None = None,
 ) -> go.Figure:
     """Fábrica interna: cria um gráfico donut padronizado.
 
@@ -83,7 +90,7 @@ def _criar_donut(
         values=values_col,
         title=titulo,
         hole=0.45,
-        color_discrete_sequence=PIE_COLOR_SEQUENCE,
+        color_discrete_sequence=cores or PIE_COLOR_SEQUENCE,
     )
     fig.update_traces(
         textposition="inside",
@@ -121,6 +128,37 @@ def _criar_donut(
     return fig
 
 
+def pie_macro_alocacao(resumo, height: int = HEIGHT_DONUT_MACRO) -> go.Figure:
+    """Cria gráfico donut para a Alocação Macro: Bolsa de Valores vs Tesouro Direto."""
+    if resumo is None:
+        return _criar_donut(None, "macro", "patrimonio", "Proporção da Carteira", height)
+
+    bolsa_pat = float(getattr(getattr(resumo, "bolsa", None), "patrimonio", 0.0) or 0.0)
+    tesouro_pat = float(getattr(getattr(resumo, "tesouro", None), "patrimonio", 0.0) or 0.0)
+
+    if bolsa_pat <= 0 and tesouro_pat <= 0:
+        return _criar_donut(None, "macro", "patrimonio", "Proporção da Carteira", height)
+
+    dados = []
+    cores_usadas = []
+    if bolsa_pat > 0:
+        dados.append({"macro": "Bolsa de Valores", "patrimonio": bolsa_pat})
+        cores_usadas.append(MACRO_COLOR_SEQUENCE[0])
+    if tesouro_pat > 0:
+        dados.append({"macro": "Tesouro Direto", "patrimonio": tesouro_pat})
+        cores_usadas.append(MACRO_COLOR_SEQUENCE[1])
+
+    df = pd.DataFrame(dados)
+    return _criar_donut(
+        df,
+        names_col="macro",
+        values_col="patrimonio",
+        titulo="Proporção da Carteira",
+        height=height,
+        cores=cores_usadas,
+    )
+
+
 def pie_carteira(pos, limite_outros_pct: float = 0.0) -> go.Figure:
     df = (
         agrupar_posicao_outros(pos, "produto", "valor_abs", limite_pct=limite_outros_pct)
@@ -131,7 +169,8 @@ def pie_carteira(pos, limite_outros_pct: float = 0.0) -> go.Figure:
 
 
 def pie_carteira_por_categoria(pos_categoria) -> go.Figure:
-    return _criar_donut(pos_categoria, "categoria", "valor", "Alocação por Classe de Ativos", HEIGHT_PIE)
+    names_col = "categoria" if (pos_categoria is not None and not getattr(pos_categoria, "empty", True) and "categoria" in pos_categoria.columns) else "classe"
+    return _criar_donut(pos_categoria, names_col, "valor", "Alocação por Classe de Ativos", HEIGHT_PIE)
 
 
 def pie_categoria(pos, titulo: str = "Distribuição por Ativo") -> go.Figure:

@@ -8,8 +8,33 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+try:
+    from dashboard.views.svg.links import get_svg_url
+except ImportError:  # pragma: no cover
+    from views.svg.links import get_svg_url
+
+
+def _svg_icon_html(ticker: str) -> str:
+    """Retorna o HTML do ícone SVG do ativo, ou string vazia.
+
+    Usa ``<img loading="lazy">`` — o browser busca, cacheia e renderiza
+    em paralelo, sem bloquear o Python. Dimensão fixa 28 × 28 px.
+    Se o ticker não estiver mapeado, retorna ``""`` (sem elemento).
+    """
+    url = get_svg_url(ticker)
+    if not url:
+        return ""
+    return (
+        f'<img src="{url}" '
+        f'width="28" height="28" '
+        f'loading="lazy" '
+        f'onerror="this.style.display=\'none\'" '
+        f'style="border-radius:4px; object-fit:contain; flex-shrink:0;" '
+        f'alt="{ticker}">'
+    )
+
 # Quantas colunas de cards por linha
-_CARDS_POR_LINHA = 3
+_CARDS_POR_LINHA = 2
 
 
 def render_section(
@@ -61,6 +86,18 @@ def _obter_tipo_e_grupo(categoria: str) -> tuple[str, str]:
     return rotulo, f"de {rotulo}"
 
 
+def _extrair_ticker(produto: str) -> str:
+    """Extrai o ticker de uma string de produto.
+
+    Suporta os dois formatos presentes nos arquivos B3:
+
+    * ``"PETR4"``                       → ``"PETR4"``
+    * ``"PETR4 - PETROLEO BRASILEIRO"`` → ``"PETR4"``
+    * ``"Tesouro Selic 2029"``          → ``"Tesouro Selic 2029"`` (sem " - ", retorna inteiro)
+    """
+    return produto.split(" - ")[0].strip()
+
+
 def _render_card(row: pd.Series, rotulo_valor: str = "Valor Atual (snapshot)") -> None:
     """Renderiza um único card de ativo dentro de um st.container."""
     produto = str(row.get("produto", "—"))
@@ -93,12 +130,25 @@ def _render_card(row: pd.Series, rotulo_valor: str = "Valor Atual (snapshot)") -
         delta_color = "off"
 
     with st.container(border=True):
-        # Topo: Nome do Ativo à esquerda e Tipo no singular à direita (flexbox alinhado)
+        # Topo: ícone SVG + nome do ativo à esquerda, badge de tipo à direita
+        ticker = _extrair_ticker(produto)          # "PETR4 - PETROBRAS" → "PETR4"
+        icon_html = _svg_icon_html(ticker)
+        icon_block = (
+            f'<div style="display:flex; align-items:center; gap:6px; min-width:0;">'
+            f'{icon_html}'
+            f'<span style="font-weight:600; font-size:0.95rem; line-height:1.3; '
+            f'overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{produto}</span>'
+            f'</div>'
+        ) if icon_html else (
+            f'<span style="font-weight:600; font-size:0.95rem; line-height:1.3;">{produto}</span>'
+        )
         st.markdown(
-            f"""<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;">
-    <span style="font-weight:600; font-size:0.95rem; line-height:1.3;">{produto}</span>
-    <span style="font-size:0.75rem; background:#e2e8f0; border-radius:4px; padding:2px 8px; color:#475569; white-space:nowrap; flex-shrink:0;">{tipo_singular}</span>
-</div>""",
+            f'<div style="display:flex; justify-content:space-between; align-items:center; '
+            f'gap:8px; margin-bottom:8px;">'
+            f'{icon_block}'
+            f'<span style="font-size:0.75rem; background:#e2e8f0; border-radius:4px; '
+            f'padding:2px 8px; color:#475569; white-space:nowrap; flex-shrink:0;">{tipo_singular}</span>'
+            f'</div>',
             unsafe_allow_html=True,
         )
 

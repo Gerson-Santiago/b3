@@ -9,6 +9,7 @@ try:
         bar_lucro_prejuizo,
         pie_carteira,
         pie_carteira_por_categoria,
+        pie_macro_alocacao,
         sunburst_carteira,
         treemap_carteira,
     )
@@ -21,6 +22,7 @@ except ImportError:  # pragma: no cover
         bar_lucro_prejuizo,
         pie_carteira,
         pie_carteira_por_categoria,
+        pie_macro_alocacao,
         sunburst_carteira,
         treemap_carteira,
     )
@@ -30,11 +32,8 @@ except ImportError:  # pragma: no cover
 
 
 
-def _render_alocacao_macro(state: DashboardState) -> bool:
-    """Exibe cards de alocação macro (Bolsa vs Tesouro) e raio-X detalhado sob demanda."""
-    st.markdown("### Alocação Macro & Risco")
-    res = state.resumo
-
+def _render_cards_macro(res) -> None:
+    """Renderiza os cards de métricas macro (Bolsa de Valores e Tesouro Direto)."""
     col_b, col_t = st.columns(2)
     with col_b:
         delta_b = f"{res.bolsa.pl:+,.2f} ({res.bolsa.pl_pct:+.2f}%)" if res.bolsa.custo > 0 else None
@@ -43,7 +42,7 @@ def _render_alocacao_macro(state: DashboardState) -> bool:
             f"R$ {res.bolsa.patrimonio:,.2f}",
             delta=delta_b,
         )
-        st.caption(f"**Peso:** {res.bolsa.peso_pct:.1f}% da carteira &nbsp;|&nbsp; **Custo:** R$ {res.bolsa.custo:,.2f}")
+        st.caption(f"**Peso:** {res.bolsa.peso_pct:.1f}% &nbsp;|&nbsp; **Custo:** R$ {res.bolsa.custo:,.2f}")
 
     with col_t:
         delta_t = f"{res.tesouro.pl:+,.2f} ({res.tesouro.pl_pct:+.2f}%)" if res.tesouro.custo > 0 else None
@@ -52,15 +51,27 @@ def _render_alocacao_macro(state: DashboardState) -> bool:
             f"R$ {res.tesouro.patrimonio:,.2f}",
             delta=delta_t,
         )
-        st.caption(f"**Peso:** {res.tesouro.peso_pct:.1f}% da carteira &nbsp;|&nbsp; **Custo:** R$ {res.tesouro.custo:,.2f}")
+        st.caption(f"**Peso:** {res.tesouro.peso_pct:.1f}% &nbsp;|&nbsp; **Custo:** R$ {res.tesouro.custo:,.2f}")
 
-    # Barra proporcional de alocação macro
     if res.patrimonio_total > 0:
-        progresso_bolsa = min(max(res.bolsa.peso_pct / 100.0, 0.0), 1.0)
-        st.progress(
-            progresso_bolsa,
-            text=f"Proporção da Carteira: {res.bolsa.peso_pct:.1f}% Bolsa de Valores | {res.tesouro.peso_pct:.1f}% Tesouro Direto",
+        st.caption(
+            f"**Patrimônio Consolidado:** R$ {res.patrimonio_total:,.2f} &nbsp;|&nbsp; "
+            f"**Lucro/Prejuízo Total:** {res.pl_total:+,.2f} ({res.pl_pct:+.2f}%)"
         )
+
+
+def _render_alocacao_macro(state: DashboardState) -> bool:
+    """Exibe cards de alocação macro (Bolsa vs Tesouro), donut alinhado e raio-X detalhado sob demanda."""
+    st.markdown("### Alocação Macro & Risco")
+    res = state.resumo
+
+    col_cards, col_donut = st.columns([3, 2])
+    with col_cards:
+        _render_cards_macro(res)
+
+    with col_donut:
+        if res.patrimonio_total > 0:
+            st.plotly_chart(pie_macro_alocacao(res), width="stretch")
 
     # Distribuição calculada dinamicamente pelas 5 Classes de Ativos
     if hasattr(state, "pos_5_classes") and not state.pos_5_classes.empty:
