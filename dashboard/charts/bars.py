@@ -149,13 +149,14 @@ def bar_dy(dy: pd.DataFrame | None) -> go.Figure:
         fig.update_layout(title=dict(text="Dividend Yield LTM por Ativo (%)"))
         return aplicar_layout_padrao(fig, altura=HEIGHT_BAR)
 
+    x_col = "produto" if "produto" in dy.columns else ("ticker" if "ticker" in dy.columns else dy.columns[0])
     y_col = "dy_ltm_pct" if "dy_ltm_pct" in dy.columns else "dy_pct"
     fig = px.bar(
         dy,
-        x="produto",
+        x=x_col,
         y=y_col,
         title="Dividend Yield LTM por Ativo (%)",
-        labels={"produto": "Ativo", y_col: "Dividend Yield (%)"},
+        labels={x_col: "Ativo", y_col: "Dividend Yield (%)"},
         color_discrete_sequence=[COLOR_DY],
     )
     fig.update_traces(
