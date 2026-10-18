@@ -1,49 +1,84 @@
-# Schema de movimentação B3 (CSV/XLSX)
+# Schema de Movimentação B3 (CSV / XLSX)
 
-## Finalidade
+## 1. Finalidade
 
-Descreve as colunas reconhecidas pelo loader `dashboard/loaders/movimentacao.py`. O relatório representa eventos da carteira; cada linha válida é uma movimentação individual. O loader aceita CSV e Excel. Em Excel, percorre todas as abas e concatena as que contêm o conjunto de colunas obrigatório.
+Descreve o contrato de dados consumido e processado pelo loader `dashboard/loaders/movimentacao.py`. O relatório de movimentação representa eventos operacionais cronológicos da carteira (compras, vendas, transferências e proventos creditados). Cada linha válida corresponde a uma movimentação individual.
 
-## Colunas de entrada
+O loader suporta tanto arquivos **CSV** quanto planilhas **Excel (.xlsx)** com múltiplas abas.
 
-Os cabeçalhos são normalizados sem diferenciar maiúsculas/minúsculas nem acentos. Os nomes da coluna **canônica** são os nomes usados no DataFrame resultante.
+---
 
-| Coluna canônica | Cabeçalho B3 reconhecido | Obrigatória | Interpretação |
-| --- | --- | :---: | --- |
-| `entrada_saida` | `Entrada/Saída` ou `Entrada/Saida` | Sim | Direção do lançamento. `Crédito` soma; `Débito` subtrai. |
-| `data` | `Data` | Sim | Data do evento, normalmente `DD/MM/AAAA`. |
-| `movimentacao` | `Movimentação` ou `Movimentacao` | Sim | Tipo/descrição do evento, por exemplo compra ou venda. |
-| `produto` | `Produto` | Sim | Descrição do ativo ou produto. |
-| `instituicao` | `Instituição` ou `Instituicao` | Sim | Instituição relacionada à movimentação. |
-| `quantidade` | `Quantidade` | Sim | Quantidade informada no evento. |
-| `preco_unitario` | `Preço unitário` ou `Preco unitario` | Sim | Preço por unidade. |
-| `valor_operacao` | `Valor da Operação` ou `Valor da Operacao` | Sim | Valor total informado para a operação. |
+## 2. Colunas de Entrada (Normalização via `ALIASES_MOV`)
 
-Se faltar qualquer coluna obrigatória, a leitura falha com indicação das colunas ausentes. Colunas adicionais não fazem parte do contrato canônico documentado.
+Os cabeçalhos brutos da B3 são normalizados automaticamente ignorando maiúsculas/minúsculas, espaços e acentos:
 
-## Formatos aceitos
+| Coluna Canônica | Cabeçalho B3 Reconhecido | Obrigatória | Tipo Esperado | Interpretação |
+| :--- | :--- | :---: | :---: | :--- |
+| `entrada_saida` | `Entrada/Saída`, `Entrada/Saida` | **Sim** | `str` | Direção do lançamento: `Credito` (adiciona) ou `Debito` (subtrai). |
+| `data` | `Data` | **Sim** | `date` | Data da operação (`DD/MM/AAAA` ou formato ISO flexível). |
+| `movimentacao` | `Movimentação`, `Movimentacao` | **Sim** | `str` | Tipo do evento: Compra, Venda, Dividendo, JCP, Rendimento, etc. |
+| `produto` | `Produto` | **Sim** | `str` | Descrição completa ou ticker informado no relatório B3. |
+| `instituicao` | `Instituição`, `Instituicao` | **Sim** | `str` | Corretora ou instituição financeira onde ocorreu a operação. |
+| `quantidade` | `Quantidade` | **Sim** | `float` | Quantidade movimentada (suporta valores inteiros e fracionários). |
+| `preco_unitario` | `Preço unitário`, `Preco unitario` | **Sim** | `float` | Preço de execução por unidade do ativo. |
+| `valor_operacao` | `Valor da Operação`, `Valor da Operacao` | **Sim** | `float` | Valor financeiro total da operação. |
 
-- **CSV:** delimitador `;`, vírgula decimal; tenta UTF-8 com BOM e depois Latin-1. Valores numéricos também aceitam formatos como `1.234,56`, `R$ 1.234,56` e números negativos entre parênteses.
-- **Excel:** o loader encaminha `.xlsx` e `.xls` ao engine `openpyxl`, que lê o formato `.xlsx`, mas não planilhas binárias `.xls` legadas. Abas vazias ou sem o schema obrigatório são ignoradas; se nenhuma aba for reconhecida, a leitura falha.
-- **Datas:** tenta primeiro `DD/MM/AAAA` e depois interpretação flexível com dia primeiro. Datas não reconhecidas ficam como `NaT`.
+> Se faltar qualquer coluna obrigatória, o loader lança `ValueError` detalhando as colunas ausentes.
 
-## Colunas produzidas
+---
 
-Além das colunas de entrada normalizadas, o loader gera:
+## 3. Formatos Suportados e Tratamento Numérico
 
-| Coluna | Regra |
-| --- | --- |
-| `sinal` | `1` para crédito, `-1` para débito e `0` para direção não reconhecida. |
-| `qtd_liquida` | `quantidade * sinal`. |
-| `valor_liquido` | `valor_operacao * sinal`. |
-| `mes` | Período mensal da coluna `data`, no formato `AAAA-MM`. |
+- **CSV:** Delimitador `;`, vírgula como separador decimal. Decodificação robusta iniciando em `utf-8-sig` (BOM) com fallback automático para `latin-1`.
+- **Excel (.xlsx):** Leitura de todas as abas via motor `openpyxl`. Abas vazias ou sem o conjunto obrigatório de colunas são descartadas silenciosamente.
+- **Valores Monetários (`parse_money`):** Converte strings contendo prefixos `R$`, pontos de milhar, vírgulas decimais e notações contábeis com parênteses (ex.: `(1.250,00)` vira `-1250.0`).
+- **Quantidades (`parse_qtd`):** Suporta quantidades fracionárias com até 4 casas decimais (essencial para **Tesouro Direto**, ex.: `0,12` título).
+- **Datas:** Tentativa primária no padrão brasileiro `DD/MM/AAAA` (`dayfirst=True`), com parsing flexível para formatos mistos. Datas inválidas convertidas em `NaT`.
 
-`entrada_saida` e `movimentacao` são convertidas para minúsculas; espaços externos são removidos. Produto e instituição vazios recebem, respectivamente, `Sem nome` e `Sem instituição`. A normalização de valores inválidos pode resultar em valor ausente.
+---
 
-## Exemplo conceitual
+## 4. Colunas Produzidas e Enriquecidas
 
-| Entrada/Saída | Data | Movimentação | Produto | Instituição | Quantidade | Preço unitário | Valor da Operação |
-| --- | --- | --- | --- | --- | ---: | ---: | ---: |
-| Crédito | 06/08/2026 | Compra | PETR4 | Corretora X | 10 | 30,00 | 300,00 |
+Após a validação, o DataFrame gerado é enriquecido com colunas operacionais e identidade canônica:
 
-Para esse exemplo, `sinal = 1`, `qtd_liquida = 10`, `valor_liquido = 300` e `mes = 2026-08`.
+| Coluna | Regra de Cálculo / Origem | Exemplo |
+| :--- | :--- | :--- |
+| `sinal` | `1` para crédito, `-1` para débito e `0` para direção indefinida (`SINAL_ENTRADA_SAIDA`). | `1` |
+| `qtd_liquida` | `quantidade * sinal` | `10.0` (ou `-5.0`) |
+| `valor_liquido` | `valor_operacao * sinal` | `300.00` |
+| `mes` | Período mensal da coluna `data` no formato `AAAA-MM` | `2026-08` |
+| `ativo` | Ticker canônico resolvido via `anotar_ativos` e `CATALOGO_ATIVOS` | `PETR4`, `Tesouro Selic 2029` |
+| `ativo_id` | Objeto `AtivoId(classe, codigo)` com identidade de classe e código canônico | `AtivoId(classe='AÇÕES', codigo='PETR4')` |
+
+### Auditoria de Qualidade (`RelatorioQualidade`)
+Se um produto da movimentação não for reconhecido pelo catálogo de ativos, ele recebe a classe `DESCONHECIDO` e é registrado no relatório de qualidade com o aviso `ATIVO_DESCONHECIDO`, permitindo monitoramento sem quebrar a execução.
+
+---
+
+## 5. Exemplo Conceitual
+
+**Entrada (Linha da B3):**
+```text
+Entrada/Saída: Credito | Data: 06/08/2026 | Movimentação: Compra | Produto: PETR4 - PETROLEO BRASILEIRO S.A. | Instituição: XP INVESTIMENTOS | Quantidade: 10 | Preço unitário: 30,00 | Valor da Operação: 300,00
+```
+
+**Saída Processada (DataFrame Canônico):**
+```text
+sinal: 1 | qtd_liquida: 10.0 | valor_liquido: 300.00 | mes: "2026-08" | ativo: "PETR4" | ativo_id: AtivoId(classe='AÇÕES', codigo='PETR4')
+```
+
+---
+
+## 6. Diretrizes para IA e Desenvolvedores
+
+Ao trabalhar neste loader, pipelines derivados ou métricas de movimentação:
+
+1. **Comando de Testes Canônico (Rápido e Conciso):**
+   ```powershell
+   .\.venv\Scripts\pytest -q --tb=short
+   ```
+2. **Ciclo de Desenvolvimento:**
+   - **Proteja:** Valide regressões com os testes de `test_default_loader.py` e `test_b3_metrics.py`.
+   - **SSoT:** Regras de sinais pertencem exclusivamente a `dashboard/models/movimentacao.py`.
+   - **DRY:** Use os parsers centralizados `parse_money` e `parse_qtd` de `dashboard.utils`.
+   - **SRP:** O loader apenas ingere e enriquece; cálculos acumulados pertencem a `dashboard.metrics` e `dashboard.state_pipeline`.
