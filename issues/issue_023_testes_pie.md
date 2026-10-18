@@ -1,7 +1,7 @@
 # Issue 2.3 — Testes Unitários para `charts/pie.py`
 
 **Fase:** 2 — Proteção
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 2–3 horas
 **Arquivo de teste a criar:** `tests/test_charts_pie.py`
 
@@ -15,9 +15,9 @@
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Arquivo `tests/test_charts_pie.py` criado.
-- [ ] `pytest tests/test_charts_pie.py` passa com `0 erros`.
-- [ ] Todos os cenários abaixo cobertos.
+- [x] Arquivo `tests/test_charts_pie.py` criado.
+- [x] `pytest tests/test_charts_pie.py` passa com `0 erros`.
+- [x] Todos os cenários abaixo cobertos.
 
 ---
 
@@ -25,27 +25,27 @@
 
 ### Fixture compartilhada
 
-- [ ] Criar `pos_sample` com colunas `produto`, `valor_abs`, `categoria`.
-- [ ] Criar `pos_categoria_sample` com colunas `categoria`, `valor`.
+- [x] Criar `pos_sample` com colunas `produto`, `valor_abs`, `categoria`.
+- [x] Criar `pos_categoria_sample` com colunas `categoria`, `valor`.
 
 ### `pie_carteira(pos)`
 
-- [ ] **Cenário feliz:** DataFrame com `produto` e `valor_abs` → retorna `go.Figure` válido (`len(fig.data) > 0`).
-- [ ] **Hole = donut:** `fig.data[0].hole == 0.45`.
-- [ ] **Altura correta:** `fig.layout.height == HEIGHT_PIE`.
-- [ ] **Separadores PT-BR:** `fig.layout.separators == ",."`.
+- [x] **Cenário feliz:** DataFrame com `produto` e `valor_abs` → retorna `go.Figure` válido (`len(fig.data) > 0`).
+- [x] **Hole = donut:** `fig.data[0].hole == 0.45`.
+- [x] **Altura correta:** `fig.layout.height == HEIGHT_PIE`.
+- [x] **Separadores PT-BR:** `fig.layout.separators == ",."`.
 
 ### `pie_carteira_por_categoria(pos_categoria)`
 
-- [ ] **Cenário feliz:** DataFrame com `categoria` e `valor` → retorna `go.Figure` válido.
-- [ ] **Altura correta:** `fig.layout.height == HEIGHT_PIE`.
-- [ ] **Hole = donut:** `fig.data[0].hole == 0.45`.
+- [x] **Cenário feliz:** DataFrame com `categoria` e `valor` → retorna `go.Figure` válido.
+- [x] **Altura correta:** `fig.layout.height == HEIGHT_PIE`.
+- [x] **Hole = donut:** `fig.data[0].hole == 0.45`.
 
 ### `pie_categoria(pos, titulo)`
 
-- [ ] **Cenário feliz:** Retorna `go.Figure` válido.
-- [ ] **Título customizado:** `fig.layout.title.text == "Meu Título"` ao passar `titulo="Meu Título"`.
-- [ ] **Altura correta:** `fig.layout.height == HEIGHT_PIE_SMALL`.
+- [x] **Cenário feliz:** Retorna `go.Figure` válido.
+- [x] **Título customizado:** `fig.layout.title.text == "Meu Título"` ao passar `titulo="Meu Título"`.
+- [x] **Altura correta:** `fig.layout.height == HEIGHT_PIE_SMALL`.
 
 ---
 

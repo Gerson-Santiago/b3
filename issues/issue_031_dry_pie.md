@@ -1,7 +1,7 @@
 # Issue 3.1 — DRY: Extrair `_criar_donut()` em `charts/pie.py`
 
 **Fase:** 3 — SSoT & DRY
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 2–3 horas
 **Dependência:** Issue 2.3 ✅ (testes de `pie.py` devem estar verdes)
 
@@ -15,19 +15,19 @@ As três funções de `pie.py` são quase idênticas. A triplicação significa 
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Função interna `_criar_donut(df, names_col, values_col, titulo, height)` criada em `pie.py`.
-- [ ] `pie_carteira`, `pie_carteira_por_categoria` e `pie_categoria` delegam para `_criar_donut()`.
-- [ ] Todas as 3 funções públicas mantêm a mesma assinatura e comportamento externo.
-- [ ] `pytest tests/test_charts_pie.py` continua passando sem nenhuma modificação nos testes.
+- [x] Função interna `_criar_donut(df, names_col, values_col, titulo, height)` criada em `pie.py`.
+- [x] `pie_carteira`, `pie_carteira_por_categoria` e `pie_categoria` delegam para `_criar_donut()`.
+- [x] Todas as 3 funções públicas mantêm a mesma assinatura e comportamento externo.
+- [x] `pytest tests/test_charts_pie.py` continua passando sem nenhuma modificação nos testes.
 
 ---
 
 ## Checklist de Ações
 
-- [ ] Identificar os parâmetros que variam entre as 3 funções: `names`, `values`, `titulo`, `altura`.
-- [ ] Criar `_criar_donut(df, names_col, values_col, titulo, height)` consolidando `px.pie(...)` + `update_traces(...)` + `aplicar_layout_padrao(...)`.
-- [ ] Reescrever cada função pública para chamar `_criar_donut(...)` com seus parâmetros específicos.
-- [ ] Executar `pytest tests/test_charts_pie.py -v` → todos devem passar.
+- [x] Identificar os parâmetros que variam entre as 3 funções: `names`, `values`, `titulo`, `altura`.
+- [x] Criar `_criar_donut(df, names_col, values_col, titulo, height)` consolidando `px.pie(...)` + `update_traces(...)` + `aplicar_layout_padrao(...)`.
+- [x] Reescrever cada função pública para chamar `_criar_donut(...)` com seus parâmetros específicos.
+- [x] Executar `pytest tests/test_charts_pie.py -v` → todos devem passar.
 
 ---
 

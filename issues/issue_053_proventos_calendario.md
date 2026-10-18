@@ -1,7 +1,7 @@
 # Issue 5.3 — Calendário de Proventos (Tabela por Data de Pagamento)
 
 **Fase:** 5 — Calendário de Proventos e Fluxo de Caixa
-**Status:** ⏳ Backlog
+**Status:** 🟡 Quase Concluído (Código implementado; testes unitários pendentes)
 **Estimativa:** 3–4 horas
 **Dependência:** Issue 5.1 ✅ + Issue 5.2 ✅
 
@@ -15,11 +15,11 @@ O investidor precisa saber **quando** vai receber proventos, não só o quanto. 
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Tabela `st.dataframe` exibida na aba `Proventos & Renda` com colunas: `data`, `ativo`, `tipo` (Dividendo/JCP/Rendimento FII), `valor_liquido`.
-- [ ] Tabela ordenada por `data` descendente (mais recente no topo) por padrão.
-- [ ] Filtro de mês/ano na sidebar ou acima da tabela.
-- [ ] Linha de totais por mês visível (via `st.dataframe` com `column_config` ou seção separada).
-- [ ] Função `build_calendario_proventos(mov_df)` em `metrics/proventos.py` (ou módulo separado).
+- [x] Tabela `st.dataframe` exibida na aba `Proventos & Renda` com colunas: `data`, `ativo`, `tipo` (Dividendo/JCP/Rendimento FII), `valor_liquido`.
+- [x] Tabela ordenada por `data` descendente (mais recente no topo) por padrão.
+- [ ] Filtro de mês/ano na sidebar ou acima da tabela (utiliza filtro temporal global da aplicação).
+- [x] Linha de totais visível (total no período e contagem de pagamentos via `st.caption`).
+- [x] Função `build_calendario_proventos(mov_df)` em `metrics/proventos.py` (e integrada a `DashboardState`).
 - [ ] Testes unitários em `tests/test_b3_metrics.py` (ou `test_proventos.py`): cenário feliz + DataFrame vazio.
 
 ---
@@ -28,16 +28,16 @@ O investidor precisa saber **quando** vai receber proventos, não só o quanto. 
 
 ### 1. Métrica em `metrics/proventos.py`
 
-- [ ] Criar `build_calendario_proventos(mov_df: pd.DataFrame) -> pd.DataFrame`.
-- [ ] Filtrar eventos de provento usando `efeito_movimentacao(...).provento` + `is_credito(entrada_saida)`.
-- [ ] Extrair colunas: `data`, `ativo` (ou `produto`), `movimentacao` (como `tipo`), `valor_liquido`.
-- [ ] Ordenar por `data` descendente.
+- [x] Criar `build_calendario_proventos(mov_df: pd.DataFrame) -> pd.DataFrame`.
+- [x] Filtrar eventos de provento usando `efeito_movimentacao(...).provento` + `is_credito(entrada_saida)`.
+- [x] Extrair colunas: `data`, `ativo` (ou `produto`), `movimentacao` (como `tipo`), `valor_liquido`.
+- [x] Ordenar por `data` descendente.
 
 ### 2. View em `views/proventos.py`
 
-- [ ] Importar `build_calendario_proventos`.
-- [ ] Adicionar seção `"### Calendário de Proventos"` abaixo das métricas de DY.
-- [ ] Renderizar `st.dataframe(calendario, width="stretch")` com `column_config` descritivo.
+- [x] Importar `build_calendario_proventos` (integrado via `state.calendario_proventos`).
+- [x] Adicionar seção `"### Calendário de Proventos Recebidos"` abaixo das métricas de DY.
+- [x] Renderizar `st.dataframe(calendario, width="stretch")` com `column_config` descritivo.
 
 ### 3. Testes
 

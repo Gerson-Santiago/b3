@@ -18,11 +18,11 @@
 
 | Fase | Módulo | Descrição | Status |
 | :--- | :--- | :--- | :---: |
-| **Fase 1** | `models/` | Core: Motor de Cálculo e Eventos (1.1–1.4) | ✅ Concluído |
-| **Fase 2** | `tests/` | Proteção: Cobertura Unitária da Camada de Gráficos | ✅ Concluído |
-| **Fase 3** | `charts/` | SSoT & DRY: Consolidação da Camada de Visualização | ✅ Concluído |
-| **Fase 4** | `charts/` + `views/` | Novos Gráficos: P&L e Rentabilidade Comparativa | ✅ Concluído |
-| **Fase 5** | `metrics/` + `views/` | Calendário de Proventos e Fluxo de Caixa (5.1–5.2 ✅) | 🟡 Em Progresso |
+| **Fase 1** | `models/` | Core: Motor de Cálculo, Eventos e Frações Tesouro (1.1–1.5) | ✅ Concluído |
+| **Fase 2** | `tests/` | Proteção: Cobertura Unitária da Camada de Gráficos (2.1–2.4) | ✅ Concluído |
+| **Fase 3** | `charts/` | SSoT & DRY: Consolidação da Camada de Visualização (3.1–3.3) | ✅ Concluído |
+| **Fase 4** | `charts/` + `views/` | P&L, Rentabilidade, 5 Classes, Macro Donut e Ícones SVG (4.1–4.6) | ✅ Concluído |
+| **Fase 5** | `metrics/` + `views/` | Calendário de Proventos e Fluxo de Caixa (5.1–5.3 ✅ / 5.4 ⏳) | 🟡 Em Progresso |
 | **Fase 6** | `loaders/` + `metrics/` | Loader de Proventos Recebidos & Reconciliação | ⏳ Backlog |
 | **Fase 7** | `views/` + `charts/` | Posição Interativa & Alocação Estendida (Setor/Corretora) | ⏳ Backlog |
 | **Fase 8** | `metrics/` + `views/` | Vendas, Lucro Realizado e Controle Fiscal (IR) | ⏳ Backlog |
@@ -41,6 +41,7 @@
 | 1.2 | Remoção de `if/else` por tipo de movimentação | ✅ |
 | 1.3 | Decidir por semântica em `texto/valor` | ✅ |
 | 1.4 | Extração de `pipeline_eventos.py` de `motor_posicao.py` | ✅ |
+| 1.5 | [issue_015_fracoes_tesouro.md](./issue_015_fracoes_tesouro.md) (Quantidade fracionária do Tesouro Direto nos loaders e cards) | ✅ |
 
 ---
 
@@ -70,18 +71,22 @@
 
 ---
 
-## Fase 4 — Novos Gráficos: P&L e Rentabilidade ✅
+## Fase 4 — Novos Gráficos, Alocação Macro & Identidade Visual ✅
 
-> **Princípio:** Adicionar gráficos de alto valor que respondem às Perguntas 1 e 2 ainda sem visualização.
+> **Princípio:** Adicionar gráficos de alto valor que respondem às Perguntas 1 e 2 ainda sem visualização e enriquecer a experiência visual da carteira.
 
 | # | Arquivo de Issue | Descrição | Status |
 | :--- | :--- | :--- | :---: |
 | 4.1 | [issue_041_bar_pl.md](./issue_041_bar_pl.md) | Criar `bar_lucro_prejuizo()` em `charts/bars.py` e integrar na view `carteira.py` | ✅ Concluído |
 | 4.2 | [issue_042_line_rentabilidade.md](./issue_042_line_rentabilidade.md) | Criar `line_rentabilidade_acumulada()` com linha de benchmark (CDI/IPCA) | ✅ Concluído |
+| 4.3 | [issue_043_alocacao_5_classes.md](./issue_043_alocacao_5_classes.md) | Classificação dinâmica em 5 Classes de Ativos e segmentação de Renda Fixa | ✅ Concluído |
+| 4.4 | [issue_044_ranking_ativos_donut.md](./issue_044_ranking_ativos_donut.md) | Ranking de ativos em barras e agrupamento de fatias < 3% no donut | ✅ Concluído |
+| 4.5 | [issue_045_donut_macro.md](./issue_045_donut_macro.md) | Gráfico donut alinhado de Alocação Macro (Bolsa vs Tesouro) com cores SSoT | ✅ Concluído |
+| 4.6 | [issue_046_icones_svg.md](./issue_046_icones_svg.md) | Integração de logos SVG e carregamento lazy para cards de custódia | ✅ Concluído |
 
 ---
 
-## Fase 5 — Calendário de Proventos e Fluxo de Caixa 🟡 (5.1–5.2 ✅)
+## Fase 5 — Calendário de Proventos e Fluxo de Caixa 🟡
 
 > **Princípio:** Fechar a última lacuna das 4 perguntas — a tendência, sazonalidade e fluxo de proventos recebidos.
 
@@ -89,8 +94,9 @@
 | :--- | :--- | :--- | :---: |
 | 5.1 | [issue_051_proventos_acumulado.md](./issue_051_proventos_acumulado.md) | Adicionar linha de acumulado anual ao `bar_proventos()` | ✅ Concluído |
 | 5.2 | [issue_052_proventos_tipo.md](./issue_052_proventos_tipo.md) | Segmentar `bar_proventos()` por tipo: Dividendos vs JCP vs FII | ✅ Concluído |
-| 5.3 | [issue_053_proventos_calendario.md](./issue_053_proventos_calendario.md) | Calendário de proventos por data de pagamento | ⏳ Backlog |
+| 5.3 | [issue_053_proventos_calendario.md](./issue_053_proventos_calendario.md) | Calendário de proventos por data de pagamento (Código pronto; falta teste isolado) | 🟡 Quase Concluído |
 | 5.4 | [issue_054_proventos_ranking.md](./issue_054_proventos_ranking.md) | Ranking dos maiores pagadores (top 10 por DY e por R$) | ⏳ Backlog |
+
 
 ---
 

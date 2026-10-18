@@ -1,7 +1,7 @@
 # Issue 3.2 — SSoT: Mover Regras de Remapeamento de Categoria de `treemap.py` para `models/categorias.py`
 
 **Fase:** 3 — SSoT & DRY
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 2–3 horas
 **Dependência:** Issue 2.1 a 2.4 ✅ (todos os testes de `charts/` verdes)
 
@@ -21,20 +21,20 @@ Esta regra de negócio ("AÇÕES e BDR pertencem à Bolsa de Valores") já exist
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] O dicionário de remapeamento é removido de `treemap.py`.
-- [ ] `treemap.py` passa a consumir a lógica existente de `dashboard.models.categorias`.
-- [ ] `pytest tests/test_treemap.py` continua passando sem modificação.
-- [ ] A função `_preparar_dados_hierarquia()` não contém mais strings de categoria hardcoded.
+- [x] O dicionário de remapeamento é removido de `treemap.py`.
+- [x] `treemap.py` passa a consumir a lógica existente de `dashboard.models.categorias`.
+- [x] `pytest tests/test_treemap.py` continua passando sem modificação.
+- [x] A função `_preparar_dados_hierarquia()` não contém mais strings de categoria hardcoded.
 
 ---
 
 ## Checklist de Ações
 
-- [ ] Ler `dashboard/models/categorias.py` para mapear o que já existe (`CATEGORIAS_BOLSA`, `CATEGORIA_TESOURO`, `agrupar_bolsa()`).
-- [ ] Identificar se `agrupar_bolsa()` já faz o remapeamento — se sim, reutilizar diretamente.
-- [ ] Se necessário, criar função auxiliar `nome_exibicao_categoria(categoria: str) -> str` em `categorias.py` que traduz `"AÇÕES"` → `"Bolsa de Valores"` etc.
-- [ ] Reescrever `_preparar_dados_hierarquia()` em `treemap.py` para usar essa função do domínio.
-- [ ] Executar `pytest tests/test_treemap.py -v` → todos devem passar.
+- [x] Ler `dashboard/models/categorias.py` para mapear o que já existe (`CATEGORIAS_BOLSA`, `CATEGORIA_TESOURO`, `agrupar_bolsa()`).
+- [x] Identificar se `agrupar_bolsa()` já faz o remapeamento — se sim, reutilizar diretamente.
+- [x] Se necessário, criar função auxiliar `nome_exibicao_categoria(categoria: str) -> str` em `categorias.py` que traduz `"AÇÕES"` → `"Bolsa de Valores"` etc.
+- [x] Reescrever `_preparar_dados_hierarquia()` em `treemap.py` para usar essa função do domínio.
+- [x] Executar `pytest tests/test_treemap.py -v` → todos devem passar.
 
 ---
 
