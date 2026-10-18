@@ -5,6 +5,7 @@ import streamlit as st
 
 try:
     from dashboard.charts import (
+        bar_distribuicao_ativos,
         bar_lucro_prejuizo,
         pie_carteira,
         pie_carteira_por_categoria,
@@ -16,6 +17,7 @@ try:
     from dashboard.views._helpers import render_cards_grid, render_section
 except ImportError:  # pragma: no cover
     from charts import (
+        bar_distribuicao_ativos,
         bar_lucro_prejuizo,
         pie_carteira,
         pie_carteira_por_categoria,
@@ -25,6 +27,7 @@ except ImportError:  # pragma: no cover
     from models.categorias import CATEGORIA_TESOURO, CATEGORIAS_BOLSA
     from state import DashboardState
     from views._helpers import render_cards_grid, render_section
+
 
 
 def _render_alocacao_macro(state: DashboardState) -> bool:
@@ -74,15 +77,16 @@ def _render_alocacao_macro(state: DashboardState) -> bool:
 
     # Raio-X detalhado sob demanda (expander)
     separar = False
-    with st.expander("Explorar Raio-X Detalhado (Treemap, Sunburst ou Pizza)", expanded=False):
+    with st.expander("Explorar Raio-X Detalhado (Treemap, Sunburst, Donut ou Barras)", expanded=False):
         col_view, col_toggle = st.columns([3, 2])
         with col_view:
             tipo_grafico = st.radio(
                 "Visualização da Distribuição:",
                 options=[
+                    "Gráficos de Pizza / Donut",
+                    "Ranking em Barras (Ativos)",
                     "Mapa de Árvore (Treemap)",
                     "Gráfico de Hierarquia (Sunburst)",
-                    "Gráficos de Pizza",
                 ],
                 horizontal=True,
                 key="radio_tipo_grafico_carteira",
@@ -111,10 +115,25 @@ def _render_alocacao_macro(state: DashboardState) -> bool:
                 sunburst_carteira(state.pos, separar_bdr_acoes=separar, modo_5_classes=modo_5),
                 width="stretch",
             )
+        elif tipo_grafico == "Ranking em Barras (Ativos)":
+            st.plotly_chart(
+                bar_distribuicao_ativos(state.pos),
+                width="stretch",
+            )
         else:
+            col_opt1, _ = st.columns([1, 1])
+            with col_opt1:
+                agrupar_outros = st.toggle(
+                    "Agrupar fatias menores (< 3%) em 'Outros'",
+                    value=True,
+                    help="Agrupa ativos com menos de 3% da carteira em uma única fatia para manter o donut legível e desobstruído.",
+                    key="toggle_agrupar_outros_pie",
+                )
+            limite = 3.0 if agrupar_outros else 0.0
+
             col1, col2 = st.columns(2)
             with col1:
-                st.plotly_chart(pie_carteira(state.pos), width="stretch")
+                st.plotly_chart(pie_carteira(state.pos, limite_outros_pct=limite), width="stretch")
             with col2:
                 if modo_5 and hasattr(state, "pos_5_classes") and not state.pos_5_classes.empty:
                     pos_categoria_exibida = state.pos_5_classes

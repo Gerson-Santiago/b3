@@ -215,3 +215,91 @@ def bar_lucro_prejuizo(
     fig.update_layout(showlegend=False)
     return aplicar_layout_padrao(fig, altura=HEIGHT_BAR, legenda_horizontal=False)
 
+
+def bar_distribuicao_ativos(
+    pos: pd.DataFrame | None,
+    top_n: int | None = None,
+    titulo: str = "Ranking de Ativos por Patrimônio (R$)",
+) -> go.Figure:
+    """Gera gráfico de barras horizontais ordenado com a distribuição da carteira por ativo."""
+    if pos is None or pos.empty:
+        fig = go.Figure()
+        fig.update_layout(title=dict(text=titulo))
+        return aplicar_layout_padrao(fig, altura=HEIGHT_BAR)
+
+    df = pos.copy()
+    col_valor = "valor_abs" if "valor_abs" in df.columns else ("valor" if "valor" in df.columns else None)
+    col_nome = "produto" if "produto" in df.columns else None
+
+    if col_valor is None or col_nome is None or df.empty:
+        fig = go.Figure()
+        fig.update_layout(title=dict(text=titulo))
+        return aplicar_layout_padrao(fig, altura=HEIGHT_BAR)
+
+    df[col_valor] = pd.to_numeric(df[col_valor], errors="coerce").fillna(0.0)
+    df = df[df[col_valor] > 0].copy()
+    if df.empty:
+        fig = go.Figure()
+        fig.update_layout(title=dict(text=titulo))
+        return aplicar_layout_padrao(fig, altura=HEIGHT_BAR)
+
+    total = df[col_valor].sum()
+    if total > 0:
+        df["peso_pct"] = (df[col_valor] / total) * 100.0
+    else:
+        df["peso_pct"] = 0.0
+
+    # Ordena decrescente pelo valor, aplica top_n se fornecido
+    df = df.sort_values(col_valor, ascending=False)
+    if top_n is not None and top_n > 0:
+        df = df.head(top_n)
+
+    # Inverte para que a maior barra fique no topo no eixo horizontal do Plotly
+    df = df.sort_values(col_valor, ascending=True).copy()
+
+    df["texto_barra"] = df.apply(
+        lambda r: f"R$ {r[col_valor]:,.2f} ({r['peso_pct']:.1f}%)",
+        axis=1,
+    )
+
+    tem_categoria = "categoria" in df.columns
+    cor_kwargs = dict(color="categoria") if tem_categoria else dict()
+
+    fig = px.bar(
+        df,
+        x=col_valor,
+        y=col_nome,
+        orientation="h",
+        title=titulo,
+        labels={col_valor: "Patrimônio (R$)", col_nome: "Ativo", "categoria": "Classe"},
+        custom_data=["peso_pct"],
+        **cor_kwargs,
+    )
+
+    if not tem_categoria:
+        fig.update_traces(marker_color=COLOR_PATRIMONIO)
+
+    fig.update_traces(
+        text=df["texto_barra"],
+        textposition="outside",
+        cliponaxis=False,
+        hovertemplate=(
+            "<b>%{y}</b><br>"
+            "Patrimônio: R$ %{x:,.2f}<br>"
+            "Participação: %{customdata[0]:.2f}%"
+            "<extra></extra>"
+        ),
+    )
+
+    altura_calculada = max(HEIGHT_BAR, len(df) * 32 + 90)
+
+    fig.update_layout(
+        showlegend=tem_categoria,
+        xaxis=dict(tickformat=",.2f"),
+        yaxis=dict(type="category"),
+        margin=dict(l=30, r=110, t=60, b=40),
+    )
+
+    return aplicar_layout_padrao(fig, altura=altura_calculada, legenda_horizontal=False)
+
+

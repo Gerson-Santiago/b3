@@ -131,3 +131,89 @@ class TestPieCategoria:
     def test_hole_donut(self, pos_sample):
         fig = pie_categoria(pos_sample)
         assert fig.data[0].hole == pytest.approx(0.45)
+
+
+# ---------------------------------------------------------------------------
+# agrupar_posicao_outros e melhorias do Donut
+# ---------------------------------------------------------------------------
+
+
+class TestAgruparPosicaoOutros:
+    def test_agrupa_pequenos_com_sucesso(self):
+        from dashboard.charts.pie import agrupar_posicao_outros
+
+        df = pd.DataFrame(
+            {
+                "produto": ["ATIVO_A", "ATIVO_B", "PEQ_1", "PEQ_2", "PEQ_3"],
+                "valor_abs": [8000.0, 1800.0, 50.0, 80.0, 70.0],  # total = 10000.0
+            }
+        )
+        res = agrupar_posicao_outros(df, limite_pct=2.0)
+        # PEQ_1 (0.5%), PEQ_2 (0.8%), PEQ_3 (0.7%) devem ser agrupados em 'Outros (3 ativos)'
+        assert len(res) == 3
+        assert "Outros (3 ativos)" in res["produto"].values
+        outros_val = res.loc[res["produto"] == "Outros (3 ativos)", "valor_abs"].values[0]
+        assert outros_val == pytest.approx(200.0)
+
+    def test_nao_agrupa_se_menos_de_dois_pequenos(self):
+        from dashboard.charts.pie import agrupar_posicao_outros
+
+        df = pd.DataFrame(
+            {
+                "produto": ["ATIVO_A", "PEQ_1"],
+                "valor_abs": [9900.0, 100.0],
+            }
+        )
+        res = agrupar_posicao_outros(df, limite_pct=2.0)
+        assert len(res) == 2
+        assert "Outros" not in res["produto"].values[1]
+
+    def test_df_vazio_ou_nulo(self):
+        from dashboard.charts.pie import agrupar_posicao_outros
+
+        assert agrupar_posicao_outros(None) is None
+        empty_df = pd.DataFrame()
+        assert agrupar_posicao_outros(empty_df).empty
+
+    def test_agrupar_com_max_itens(self):
+        from dashboard.charts.pie import agrupar_posicao_outros
+
+        df = pd.DataFrame(
+            {
+                "produto": ["A", "B", "C", "D"],
+                "valor_abs": [40.0, 30.0, 20.0, 10.0],
+            }
+        )
+        res = agrupar_posicao_outros(df, limite_pct=0.0, max_itens=2)
+        assert len(res) == 3
+        assert "Outros (2 ativos)" in res["produto"].values
+
+    def test_total_zero_ou_negativo(self):
+        from dashboard.charts.pie import agrupar_posicao_outros
+
+        df = pd.DataFrame({"produto": ["A", "B"], "valor_abs": [0.0, 0.0]})
+        res = agrupar_posicao_outros(df)
+        assert len(res) == 2
+
+    def test_pie_carteira_vazio(self):
+        fig = pie_carteira(pd.DataFrame())
+        assert isinstance(fig, go.Figure)
+        assert len(fig.data) == 0
+
+    def test_pie_carteira_com_agrupamento(self):
+        df = pd.DataFrame(
+            {
+                "produto": ["A1", "A2", "P1", "P2"],
+                "valor_abs": [5000.0, 4800.0, 100.0, 100.0],
+            }
+        )
+        fig = pie_carteira(df, limite_outros_pct=3.0)
+        assert isinstance(fig, go.Figure)
+        labels = list(fig.data[0].labels)
+        assert "Outros (2 ativos)" in labels
+        # Confirma legenda lateral e anotação com Total
+        assert fig.layout.legend.orientation == "v"
+        assert len(fig.layout.annotations) > 0
+        assert "Total" in fig.layout.annotations[0].text
+
+
