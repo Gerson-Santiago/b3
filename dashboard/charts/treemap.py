@@ -24,12 +24,23 @@ def _figura_hierarquia_vazia(titulo: str, altura: int = HEIGHT_TREEMAP) -> go.Fi
     return aplicar_layout_padrao(fig, altura=altura)
 
 
-def _preparar_dados_hierarquia(pos: pd.DataFrame, separar_bdr_acoes: bool) -> pd.DataFrame:
+def _preparar_dados_hierarquia(
+    pos: pd.DataFrame,
+    separar_bdr_acoes: bool = False,
+    modo_5_classes: bool = False,
+) -> pd.DataFrame:
     df = pos.copy()
     if "categoria" not in df.columns:
         df["categoria"] = "Ativos"
 
-    if not separar_bdr_acoes:
+    if modo_5_classes:
+        from dashboard.models.categorias import classificar_classe_5
+
+        df["categoria_hierarquia"] = df.apply(
+            lambda r: classificar_classe_5(r.get("produto"), r.get("categoria")),
+            axis=1,
+        )
+    elif not separar_bdr_acoes:
         df["categoria_hierarquia"] = df["categoria"].map(nome_exibicao_categoria)
     else:
         df["categoria_hierarquia"] = df["categoria"]
@@ -42,12 +53,13 @@ def treemap_carteira(
     *,
     titulo: str = "Distribuição da Carteira | Mapa de Árvore",
     separar_bdr_acoes: bool = False,
+    modo_5_classes: bool = False,
 ) -> go.Figure:
     """Gera gráfico Mapa de Árvore (Treemap) com a hierarquia de ativos da carteira."""
     if pos is None or pos.empty:
         return _figura_hierarquia_vazia(titulo, altura=HEIGHT_TREEMAP)
 
-    df = _preparar_dados_hierarquia(pos, separar_bdr_acoes)
+    df = _preparar_dados_hierarquia(pos, separar_bdr_acoes=separar_bdr_acoes, modo_5_classes=modo_5_classes)
 
     fig = px.treemap(
         df,
@@ -70,12 +82,13 @@ def sunburst_carteira(
     *,
     titulo: str = "Distribuição da Carteira | Gráfico de Hierarquia",
     separar_bdr_acoes: bool = False,
+    modo_5_classes: bool = False,
 ) -> go.Figure:
     """Gera gráfico de Hierarquia circular (Sunburst) com os ativos da carteira."""
     if pos is None or pos.empty:
         return _figura_hierarquia_vazia(titulo, altura=HEIGHT_TREEMAP)
 
-    df = _preparar_dados_hierarquia(pos, separar_bdr_acoes)
+    df = _preparar_dados_hierarquia(pos, separar_bdr_acoes=separar_bdr_acoes, modo_5_classes=modo_5_classes)
 
     fig = px.sunburst(
         df,

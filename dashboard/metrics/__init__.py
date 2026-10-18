@@ -7,7 +7,7 @@ from .position import (
     compute_position_por_categoria,
 )
 from .preco_medio import compute_preco_medio
-from .proventos import compute_proventos
+from .proventos import build_calendario_proventos, compute_proventos
 from .reconciliacao import comparar, data_do_arquivo, quantidade_ate
 
 __all__ = [
@@ -16,6 +16,7 @@ __all__ = [
     "compute_position_categoria",
     "compute_position_por_categoria",
     "compute_proventos",
+    "build_calendario_proventos",
     "compute_evolucao",
     "compute_dy",
     "compute_preco_medio",

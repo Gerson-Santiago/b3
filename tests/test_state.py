@@ -115,6 +115,27 @@ class TestPosCategoriaAgrupada:
 
 
 # ---------------------------------------------------------------------------
+# pos_5_classes e evoluções segmentadas (5 classes)
+# ---------------------------------------------------------------------------
+
+class TestPos5ClassesEEvolucoes:
+    def test_pos_5_classes_presente_no_state(self, pos_df, mov_df):
+        state = DashboardState.build(pos_df=pos_df, mov_filtered=mov_df, pos_filtered=pos_df, end_date=date(2024, 12, 31))
+        assert hasattr(state, "pos_5_classes")
+        assert not state.pos_5_classes.empty
+        assert set(["classe", "valor", "peso_pct"]).issubset(state.pos_5_classes.columns)
+
+    def test_evolucoes_segmentadas_presentes(self, pos_df, mov_df):
+        state = DashboardState.build(pos_df=pos_df, mov_filtered=mov_df, pos_filtered=pos_df, end_date=date(2024, 12, 31))
+        assert hasattr(state, "evol_inflacao")
+        assert hasattr(state, "evol_pos")
+        assert hasattr(state, "evol_pre")
+        assert "curva_aportes" in state.evol_pos
+        assert "curva_patrimonio" in state.evol_pos
+
+
+
+# ---------------------------------------------------------------------------
 # Imutabilidade e isolamento
 # ---------------------------------------------------------------------------
 

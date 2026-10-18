@@ -10,7 +10,16 @@ from dashboard.metrics.evolucao import compute_evolucao_separada
 from dashboard.metrics.position import classificar_ativo_por_mapa, compute_position, obter_mapa_categorias
 from dashboard.metrics.preco_medio import compute_preco_medio
 from dashboard.models.ativos import resolver_ativo_seguro
-from dashboard.models.categorias import CATEGORIA_TESOURO, CATEGORIAS_BOLSA, agrupar_bolsa
+from dashboard.models.categorias import (
+    CATEGORIA_TESOURO,
+    CATEGORIAS_BOLSA,
+    CLASSE_RENDA_FIXA_INFLACAO,
+    CLASSE_RENDA_FIXA_POS,
+    CLASSE_RENDA_FIXA_PRE,
+    agrupar_bolsa,
+    calcular_alocacao_5_classes,
+    classificar_classe_5,
+)
 from dashboard.models.eventos import aplicar_eventos_ordenados
 
 _COLUNAS_POS_VAZIA = ["produto", "quantidade", "valor", "valor_abs", "categoria"]
@@ -160,11 +169,43 @@ def filtrar_pos_por_categorias(
     return resultado
 
 
+def filtrar_mov_por_classe_5(
+    mov_filtered: pd.DataFrame,
+    mapa_cat: dict[str, str],
+    classe_alvo: str,
+) -> pd.DataFrame:
+    if mov_filtered.empty or "produto" not in mov_filtered.columns:
+        return mov_filtered.iloc[0:0]
+    mask = mov_filtered.apply(
+        lambda r: classificar_classe_5(r.get("produto"), mapa_cat.get(str(r.get("produto") or "").strip())) == classe_alvo,
+        axis=1,
+    )
+    return mov_filtered[mask]
+
+
+def filtrar_pos_por_classe_5(
+    pos_frames: list[pd.DataFrame],
+    classe_alvo: str,
+) -> list[pd.DataFrame]:
+    resultado = []
+    for frame in pos_frames:
+        if frame is None or frame.empty or "produto" not in frame.columns:
+            continue
+        mask = frame.apply(
+            lambda r: classificar_classe_5(r.get("produto"), r.get("categoria")),
+            axis=1,
+        ) == classe_alvo
+        filtrado = frame[mask]
+        if not filtrado.empty:
+            resultado.append(filtrado)
+    return resultado
+
+
 def curvas_segmentadas(
     mov_filtered: pd.DataFrame,
     pos_frames: list[pd.DataFrame],
     mapa_cat: dict[str, str],
-) -> tuple[dict, dict, dict]:
+) -> tuple[dict, dict, dict, dict, dict, dict]:
     evol_dict = compute_evolucao_separada(mov_filtered, pos_frames)
     evol_bolsa = compute_evolucao_separada(
         filtrar_mov_por_categorias(mov_filtered, mapa_cat, set(CATEGORIAS_BOLSA)),
@@ -174,7 +215,19 @@ def curvas_segmentadas(
         filtrar_mov_por_categorias(mov_filtered, mapa_cat, {CATEGORIA_TESOURO}),
         filtrar_pos_por_categorias(pos_frames, {CATEGORIA_TESOURO}),
     )
-    return evol_dict, evol_bolsa, evol_tesouro
+    evol_inflacao = compute_evolucao_separada(
+        filtrar_mov_por_classe_5(mov_filtered, mapa_cat, CLASSE_RENDA_FIXA_INFLACAO),
+        filtrar_pos_por_classe_5(pos_frames, CLASSE_RENDA_FIXA_INFLACAO),
+    )
+    evol_pos = compute_evolucao_separada(
+        filtrar_mov_por_classe_5(mov_filtered, mapa_cat, CLASSE_RENDA_FIXA_POS),
+        filtrar_pos_por_classe_5(pos_frames, CLASSE_RENDA_FIXA_POS),
+    )
+    evol_pre = compute_evolucao_separada(
+        filtrar_mov_por_classe_5(mov_filtered, mapa_cat, CLASSE_RENDA_FIXA_PRE),
+        filtrar_pos_por_classe_5(pos_frames, CLASSE_RENDA_FIXA_PRE),
+    )
+    return evol_dict, evol_bolsa, evol_tesouro, evol_inflacao, evol_pos, evol_pre
 
 
 def montar_derivados(
@@ -194,13 +247,20 @@ def montar_derivados(
     pos, pos_categoria = consolidar_posicao(pos_filtered, mov_ate, mapa_cat)
     pos_cards = enriquecer_pos_cards(pos, compute_preco_medio(mov_ate))
     pos_frames = [pos_df] if not pos_df.empty else []
-    evol_dict, evol_bolsa, evol_tesouro = curvas_segmentadas(mov_filtered, pos_frames, mapa_cat)
+    evol_dict, evol_bolsa, evol_tesouro, evol_inflacao, evol_pos, evol_pre = curvas_segmentadas(
+        mov_filtered, pos_frames, mapa_cat
+    )
     return {
         "pos": pos,
         "pos_categoria": pos_categoria,
         "pos_categoria_agrupada": agrupar_bolsa(pos_categoria),
+        "pos_5_classes": calcular_alocacao_5_classes(pos),
         "pos_cards": pos_cards,
         "evol_dict": evol_dict,
         "evol_bolsa": evol_bolsa,
         "evol_tesouro": evol_tesouro,
+        "evol_inflacao": evol_inflacao,
+        "evol_pos": evol_pos,
+        "evol_pre": evol_pre,
     }
+

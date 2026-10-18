@@ -12,7 +12,7 @@ from datetime import date
 import pandas as pd
 
 from dashboard.metrics.dy import compute_dy_metrics
-from dashboard.metrics.proventos import compute_proventos
+from dashboard.metrics.proventos import build_calendario_proventos, compute_proventos
 from dashboard.models.qualidade import RelatorioQualidade
 from dashboard.models.resumo import ResumoCarteira, calcular_resumo_carteira
 from dashboard.state_pipeline import enriquecer_pos_cards, montar_derivados
@@ -39,6 +39,11 @@ class DashboardState:
     evol_bolsa: dict
     evol_tesouro: dict
     dy_metrics: pd.DataFrame
+    calendario_proventos: pd.DataFrame
+    pos_5_classes: pd.DataFrame = field(default_factory=pd.DataFrame)
+    evol_inflacao: dict = field(default_factory=dict)
+    evol_pos: dict = field(default_factory=dict)
+    evol_pre: dict = field(default_factory=dict)
     resumo: ResumoCarteira = field(default_factory=ResumoCarteira)
     qualidade: RelatorioQualidade = field(default_factory=RelatorioQualidade)
 
@@ -66,12 +71,14 @@ class DashboardState:
             instituicoes_selecionadas=instituicoes_selecionadas,
         )
         proventos = compute_proventos(mov_filtered)
+        calendario = build_calendario_proventos(mov_filtered)
         resumo = calcular_resumo_carteira(derivados["pos_cards"], proventos)
         return cls(
             **derivados,
             mov_filtered=mov_filtered,
             pos_filtered=pos_filtered,
             proventos=proventos,
+            calendario_proventos=calendario,
             dy_metrics=compute_dy_metrics(mov_filtered, pos_df, data_referencia=end_date),
             resumo=resumo,
             qualidade=qualidade if qualidade is not None else RelatorioQualidade(),

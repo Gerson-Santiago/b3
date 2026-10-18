@@ -51,3 +51,25 @@ def render(state: DashboardState) -> None:
             ],
             width="stretch",
         )
+
+    st.markdown("### Calendário de Proventos Recebidos")
+    cal = state.calendario_proventos
+    if cal.empty:
+        st.info("Nenhum evento de provento encontrado no período selecionado.")
+    else:
+        total = float(cal["valor_liquido"].sum()) if "valor_liquido" in cal.columns else 0.0
+        st.caption(f"**Total no período:** R$ {total:,.2f} · **{len(cal)} pagamentos**")
+        st.dataframe(
+            cal,
+            use_container_width=True,
+            column_config={
+                "data": st.column_config.DateColumn("Data", format="DD/MM/YYYY"),
+                "ativo": st.column_config.TextColumn("Ativo"),
+                "tipo_provento": st.column_config.TextColumn("Tipo"),
+                "valor_liquido": st.column_config.NumberColumn(
+                    "Valor Líquido (R$)",
+                    format="R$ %.2f",
+                ),
+            },
+            hide_index=True,
+        )

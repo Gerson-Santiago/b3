@@ -29,14 +29,14 @@ except ImportError:  # pragma: no cover
 
 def _render_alocacao_macro(state: DashboardState) -> bool:
     """Exibe cards de alocação macro (Bolsa vs Tesouro) e raio-X detalhado sob demanda."""
-    st.markdown("### 02. Alocação Macro & Risco")
+    st.markdown("### Alocação Macro & Risco")
     res = state.resumo
 
     col_b, col_t = st.columns(2)
     with col_b:
         delta_b = f"{res.bolsa.pl:+,.2f} ({res.bolsa.pl_pct:+.2f}%)" if res.bolsa.custo > 0 else None
         st.metric(
-            "🏛️ Bolsa de Valores (Ações & BDR)",
+            "Bolsa de Valores (Ações & BDR)",
             f"R$ {res.bolsa.patrimonio:,.2f}",
             delta=delta_b,
         )
@@ -45,7 +45,7 @@ def _render_alocacao_macro(state: DashboardState) -> bool:
     with col_t:
         delta_t = f"{res.tesouro.pl:+,.2f} ({res.tesouro.pl_pct:+.2f}%)" if res.tesouro.custo > 0 else None
         st.metric(
-            "🏦 Tesouro Direto (Renda Fixa)",
+            "Tesouro Direto (Renda Fixa)",
             f"R$ {res.tesouro.patrimonio:,.2f}",
             delta=delta_t,
         )
@@ -59,9 +59,22 @@ def _render_alocacao_macro(state: DashboardState) -> bool:
             text=f"Proporção da Carteira: {res.bolsa.peso_pct:.1f}% Bolsa de Valores | {res.tesouro.peso_pct:.1f}% Tesouro Direto",
         )
 
+    # Distribuição calculada dinamicamente pelas 5 Classes de Ativos
+    if hasattr(state, "pos_5_classes") and not state.pos_5_classes.empty:
+        st.markdown("### Alocação por Classe de Ativos")
+        cols = st.columns(len(state.pos_5_classes))
+        for i, (_, row) in enumerate(state.pos_5_classes.iterrows()):
+            with cols[i]:
+                st.metric(
+                    label=row["classe"],
+                    value=f"{row['peso_pct']:.1f}%",
+                    delta=f"R$ {row['valor']:,.2f}",
+                    delta_color="off",
+                )
+
     # Raio-X detalhado sob demanda (expander)
     separar = False
-    with st.expander("🔍 Explorar Raio-X Detalhado (Treemap, Sunburst ou Pizza)", expanded=False):
+    with st.expander("Explorar Raio-X Detalhado (Treemap, Sunburst ou Pizza)", expanded=False):
         col_view, col_toggle = st.columns([3, 2])
         with col_view:
             tipo_grafico = st.radio(
@@ -75,24 +88,27 @@ def _render_alocacao_macro(state: DashboardState) -> bool:
                 key="radio_tipo_grafico_carteira",
             )
         with col_toggle:
-            separar = st.toggle(
-                "Separar BDR e Ações no gráfico de alocação",
-                value=False,
-                key="toggle_separar_bdr_acoes",
+            modo_hierarquia = st.selectbox(
+                "Agrupamento de Classes:",
+                options=[
+                    "5 Classes de Ativos",
+                    "Ações, BDR e Tesouro",
+                    "Bolsa de Valores vs Tesouro Direto",
+                ],
+                index=0,
+                key="select_modo_hierarquia_carteira",
             )
-
-        pos_categoria_exibida = (
-            state.pos_categoria if separar else state.pos_categoria_agrupada
-        )
+            modo_5 = (modo_hierarquia == "5 Classes de Ativos")
+            separar = (modo_hierarquia != "Bolsa de Valores vs Tesouro Direto")
 
         if tipo_grafico == "Mapa de Árvore (Treemap)":
             st.plotly_chart(
-                treemap_carteira(state.pos, separar_bdr_acoes=separar),
+                treemap_carteira(state.pos, separar_bdr_acoes=separar, modo_5_classes=modo_5),
                 width="stretch",
             )
         elif tipo_grafico == "Gráfico de Hierarquia (Sunburst)":
             st.plotly_chart(
-                sunburst_carteira(state.pos, separar_bdr_acoes=separar),
+                sunburst_carteira(state.pos, separar_bdr_acoes=separar, modo_5_classes=modo_5),
                 width="stretch",
             )
         else:
@@ -100,6 +116,12 @@ def _render_alocacao_macro(state: DashboardState) -> bool:
             with col1:
                 st.plotly_chart(pie_carteira(state.pos), width="stretch")
             with col2:
+                if modo_5 and hasattr(state, "pos_5_classes") and not state.pos_5_classes.empty:
+                    pos_categoria_exibida = state.pos_5_classes
+                else:
+                    pos_categoria_exibida = (
+                        state.pos_categoria if separar else state.pos_categoria_agrupada
+                    )
                 st.plotly_chart(
                     pie_carteira_por_categoria(pos_categoria_exibida),
                     width="stretch",
@@ -111,7 +133,7 @@ def _render_alocacao_macro(state: DashboardState) -> bool:
 def _render_resultado_pl(state: DashboardState) -> None:
     """Exibe o gráfico de Lucro e Prejuízo por Ativo (Issue 4.1)."""
     if not state.pos_cards.empty and (state.pos_cards["custo_total"] > 0).any():
-        st.markdown("### 03. Resultado por Ativo (P&L)")
+        st.markdown("### Resultado por Ativo (P&L)")
         st.plotly_chart(bar_lucro_prejuizo(state.pos_cards), width="stretch")
 
 
@@ -134,7 +156,7 @@ def _render_cards_custodia(state: DashboardState, separar: bool) -> None:
     if not is_fallback:
         st.caption("Dados baseados no snapshot de custódia mais recente da B3.")
     else:
-        st.info("ℹ️ Exibindo **Custo histórico**: Nenhum arquivo de posição carregado. Os valores correspondem ao custo acumulado de aquisição.")
+        st.info("Exibindo **Custo histórico**: Nenhum arquivo de posição carregado. Os valores correspondem ao custo acumulado de aquisição.")
 
 
 def render(state: DashboardState) -> None:

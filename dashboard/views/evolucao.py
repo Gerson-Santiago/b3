@@ -18,23 +18,32 @@ except ImportError:  # pragma: no cover
 
 # Opções de produto disponíveis no seletor
 _OPCOES_PRODUTO = [
+    "Consolidado",
     "Bolsa de Valores (Ações & BDR)",
     "Tesouro Direto",
-    "Consolidado",
+    "Renda Fixa — Inflação",
+    "Renda Fixa — Pós-fixada",
+    "Renda Fixa — Prefixada",
 ]
 
 # Mapeamento opção → chave no state
 _MAP_EVOL = {
+    "Consolidado": "consolidado",
     "Bolsa de Valores (Ações & BDR)": "bolsa",
     "Tesouro Direto": "tesouro",
-    "Consolidado": "consolidado",
+    "Renda Fixa — Inflação": "inflacao",
+    "Renda Fixa — Pós-fixada": "pos",
+    "Renda Fixa — Prefixada": "pre",
 }
 
 # Mapeamento chave → atributo do DashboardState
 _MAP_STATE = {
+    "consolidado": "evol_dict",
     "bolsa": "evol_bolsa",
     "tesouro": "evol_tesouro",
-    "consolidado": "evol_dict",
+    "inflacao": "evol_inflacao",
+    "pos": "evol_pos",
+    "pre": "evol_pre",
 }
 
 
