@@ -84,3 +84,68 @@ def test_render_reconciliacao_com_divergencias(
 
     assert mock_df.called
     assert mock_warn.called
+
+
+@patch("streamlit.success")
+@patch("streamlit.warning")
+@patch("streamlit.dataframe")
+@patch("streamlit.markdown")
+def test_render_reconciliacao_proventos_ok(
+    mock_md,
+    mock_df,
+    mock_warn,
+    mock_succ,
+    state_reconciliacao_mock,
+):
+    state_reconciliacao_mock.reconciliacao_proventos = pd.DataFrame(
+        {
+            "ativo": ["PETR4"],
+            "total_movimentacao": [10.0],
+            "total_extrato_proventos": [10.0],
+            "delta": [0.0],
+            "status": ["OK"],
+        }
+    )
+    pos_df = pd.DataFrame(
+        {
+            "produto": ["PETR4", "VALE3"],
+            "quantidade": [10.0, 5.0],
+            "categoria": ["AÇÕES", "AÇÕES"],
+        }
+    )
+    render(state_reconciliacao_mock, pos_df, pd.Timestamp("2024-12-31"))
+
+    assert mock_succ.called
+
+
+@patch("streamlit.success")
+@patch("streamlit.warning")
+@patch("streamlit.dataframe")
+@patch("streamlit.markdown")
+def test_render_reconciliacao_proventos_divergente(
+    mock_md,
+    mock_df,
+    mock_warn,
+    mock_succ,
+    state_reconciliacao_mock,
+):
+    state_reconciliacao_mock.reconciliacao_proventos = pd.DataFrame(
+        {
+            "ativo": ["PETR4"],
+            "total_movimentacao": [10.0],
+            "total_extrato_proventos": [20.0],
+            "delta": [10.0],
+            "status": ["Divergente"],
+        }
+    )
+    pos_df = pd.DataFrame(
+        {
+            "produto": ["PETR4", "VALE3"],
+            "quantidade": [10.0, 5.0],
+            "categoria": ["AÇÕES", "AÇÕES"],
+        }
+    )
+    render(state_reconciliacao_mock, pos_df, pd.Timestamp("2024-12-31"))
+
+    assert mock_warn.called
+

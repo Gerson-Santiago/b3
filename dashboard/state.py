@@ -46,6 +46,8 @@ class DashboardState:
     evol_pre: dict = field(default_factory=dict)
     resumo: ResumoCarteira = field(default_factory=ResumoCarteira)
     qualidade: RelatorioQualidade = field(default_factory=RelatorioQualidade)
+    prov_recebidos_df: pd.DataFrame = field(default_factory=pd.DataFrame)
+    reconciliacao_proventos: pd.DataFrame = field(default_factory=pd.DataFrame)
 
     @classmethod
     def build(
@@ -56,11 +58,14 @@ class DashboardState:
         pos_filtered: pd.DataFrame,
         end_date: date,
         mov_df: pd.DataFrame | None = None,
+        prov_recebidos_df: pd.DataFrame | None = None,
         produtos_selecionados: list[str] | None = None,
         instituicoes_selecionadas: list[str] | None = None,
         qualidade: RelatorioQualidade | None = None,
     ) -> "DashboardState":
         """Calcula todos os dados derivados e retorna um ``DashboardState``."""
+        from dashboard.metrics.reconciliacao_proventos import reconciliar_proventos
+
         derivados = montar_derivados(
             pos_df=pos_df,
             mov_filtered=mov_filtered,
@@ -73,6 +78,11 @@ class DashboardState:
         proventos = compute_proventos(mov_filtered)
         calendario = build_calendario_proventos(mov_filtered)
         resumo = calcular_resumo_carteira(derivados["pos_cards"], proventos)
+        reconciliacao_prov = (
+            reconciliar_proventos(mov_filtered, prov_recebidos_df)
+            if prov_recebidos_df is not None and not prov_recebidos_df.empty
+            else pd.DataFrame()
+        )
         return cls(
             **derivados,
             mov_filtered=mov_filtered,
@@ -82,4 +92,7 @@ class DashboardState:
             dy_metrics=compute_dy_metrics(mov_filtered, pos_df, data_referencia=end_date),
             resumo=resumo,
             qualidade=qualidade if qualidade is not None else RelatorioQualidade(),
+            prov_recebidos_df=prov_recebidos_df if prov_recebidos_df is not None else pd.DataFrame(),
+            reconciliacao_proventos=reconciliacao_prov,
         )
+

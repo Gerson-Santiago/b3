@@ -1,7 +1,7 @@
 # Issue 6.3 — Reader de Proventos Recebidos (`loaders/proventos_recebidos.py`)
 
 **Fase:** 6 — Loader de Proventos Recebidos
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 3–4 horas
 **Dependência:** Issue 6.1 ✅ (schema) + Issue 6.2 ✅ (aliases)
 
@@ -17,13 +17,14 @@ A pasta `xlsx/proventos-recebidos/` já contém arquivos reais da B3. No entanto
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Função `read_proventos_recebidos_file(path_or_buffer, qualidade=None) -> pd.DataFrame` implementada em `dashboard/loaders/proventos_recebidos.py`.
-- [ ] Colunas normalizadas conforme `ALIASES_PROV_RECEBIDOS`.
-- [ ] Datas parseadas para `pd.Timestamp` e valores monetários para `float`.
-- [ ] Tratamento de arquivo vazio ou inválido com retorno limpo ou relatório em `RelatorioQualidade`.
-- [ ] Integração com `dashboard/loaders/default_loader.py` e configuração de busca padrão em `app.py`.
-- [ ] Testes unitários em `tests/test_proventos_recebidos_loader.py` cobrindo cenários com arquivo válido, colunas ausentes e tipos inválidos.
-- [ ] `pytest tests/test_proventos_recebidos_loader.py` passando com 100% de sucesso.
+- [x] Função `read_proventos_recebidos_file(path_or_buffer, qualidade=None) -> pd.DataFrame` implementada em `dashboard/loaders/proventos_recebidos.py`.
+- [x] Colunas normalizadas conforme `ALIASES_PROV_RECEBIDOS`.
+- [x] Datas parseadas para `pd.Timestamp` e valores monetários para `float`.
+- [x] Tratamento de arquivo vazio ou inválido com retorno limpo ou relatório em `RelatorioQualidade`.
+- [x] Integração com `dashboard/loaders/default_loader.py` e configuração de busca padrão em `app.py`.
+- [x] Testes unitários em `tests/test_proventos_recebidos_loader.py` cobrindo cenários com arquivo válido, colunas ausentes e tipos inválidos.
+- [x] `pytest tests/test_proventos_recebidos_loader.py` passando com 100% de sucesso.
+
 
 ---
 

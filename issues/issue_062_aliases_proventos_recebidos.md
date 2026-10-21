@@ -1,7 +1,7 @@
 # Issue 6.2 — Aliases de Proventos Recebidos (`aliases/proventos_recebidos.py`)
 
 **Fase:** 6 — Loader de Proventos Recebidos
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 1 hora
 **Dependência:** Issue 6.1 ✅ (schema documentado)
 
@@ -15,10 +15,11 @@ Seguindo o padrão SSoT do projeto (`aliases/movimentacao.py`, `aliases/posicao.
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Arquivo `aliases/proventos_recebidos.py` criado com `ALIASES_PROV_RECEBIDOS: dict[str, list[str]]`.
-- [ ] Colunas mapeadas conforme schema da Issue 6.1.
-- [ ] Exportado em `aliases/__init__.py`.
-- [ ] Teste unitário verifica que todas as chaves do alias produzem um nome normalizado único (sem colisão).
+- [x] Arquivo `aliases/proventos_recebidos.py` criado com `ALIASES_PROV_RECEBIDOS: dict[str, list[str]]`.
+- [x] Colunas mapeadas conforme schema da Issue 6.1.
+- [x] Exportado em `aliases/__init__.py`.
+- [x] Teste unitário verifica que todas as chaves do alias produzem um nome normalizado único (sem colisão).
+
 
 ---
 

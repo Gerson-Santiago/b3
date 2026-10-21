@@ -100,17 +100,18 @@
 
 ---
 
-## Fase 6 — Loader de Proventos Recebidos & Reconciliação ⏳
+## Fase 6 — Loader de Proventos Recebidos & Reconciliação ✅
 
 > **Princípio:** Integrar a fonte dedicada de proventos da B3 e cruzar com os eventos de movimentação.
 
 | # | Arquivo de Issue | Descrição | Status |
 | :--- | :--- | :--- | :---: |
-| 6.1 | [issue_061_schema_proventos_recebidos.md](./issue_061_schema_proventos_recebidos.md) | Documentação de schema do export de proventos recebidos | ⏳ Backlog |
-| 6.2 | [issue_062_aliases_proventos_recebidos.md](./issue_062_aliases_proventos_recebidos.md) | Mapeamento centralizado de aliases para proventos recebidos | ⏳ Backlog |
-| 6.3 | [issue_063_loader_proventos_recebidos.md](./issue_063_loader_proventos_recebidos.md) | Reader isolado e tipado em `loaders/proventos_recebidos.py` | ⏳ Backlog |
-| 6.4 | [issue_064_reconciliacao_proventos.md](./issue_064_reconciliacao_proventos.md) | Cálculo de conciliação cruzada (Movimentação vs Extrato Proventos) | ⏳ Backlog |
-| 6.5 | [issue_065_view_reconciliacao_proventos.md](./issue_065_view_reconciliacao_proventos.md) | Exibição de auditoria de proventos em `views/reconciliacao.py` | ⏳ Backlog |
+| 6.1 | [issue_061_schema_proventos_recebidos.md](./issue_061_schema_proventos_recebidos.md) | Documentação de schema do export de proventos recebidos | ✅ Concluído |
+| 6.2 | [issue_062_aliases_proventos_recebidos.md](./issue_062_aliases_proventos_recebidos.md) | Mapeamento centralizado de aliases para proventos recebidos | ✅ Concluído |
+| 6.3 | [issue_063_loader_proventos_recebidos.md](./issue_063_loader_proventos_recebidos.md) | Reader isolado e tipado em `loaders/proventos_recebidos.py` | ✅ Concluído |
+| 6.4 | [issue_064_reconciliacao_proventos.md](./issue_064_reconciliacao_proventos.md) | Cálculo de conciliação cruzada (Movimentação vs Extrato Proventos) | ✅ Concluído |
+| 6.5 | [issue_065_view_reconciliacao_proventos.md](./issue_065_view_reconciliacao_proventos.md) | Exibição de auditoria de proventos em `views/reconciliacao.py` | ✅ Concluído |
+
 
 ---
 

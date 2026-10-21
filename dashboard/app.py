@@ -16,6 +16,7 @@ try:
     from dashboard.loaders.default_loader import load_default
     from dashboard.loaders.movimentacao import read_movimentacao_file
     from dashboard.loaders.posicao import read_posicao_file
+    from dashboard.loaders.proventos_recebidos import read_proventos_recebidos_file
     from dashboard.models.eventos import listar_movimentacoes_pendentes
     from dashboard.models.qualidade import RelatorioQualidade, mensagens
     from dashboard.state import DashboardState
@@ -26,6 +27,7 @@ except ImportError:  # pragma: no cover
     from loaders.default_loader import load_default
     from loaders.movimentacao import read_movimentacao_file
     from loaders.posicao import read_posicao_file
+    from loaders.proventos_recebidos import read_proventos_recebidos_file
     from models.eventos import listar_movimentacoes_pendentes
     from models.qualidade import RelatorioQualidade, mensagens
     from state import DashboardState
@@ -48,6 +50,10 @@ _MOV_SEARCH_DIRS = [
 _POS_SEARCH_DIRS = [
     (_BASE_DIR / "xlsx" / "posicao", "posicao"),
     (_BASE_DIR / "xlsx", "posicao"),
+]
+_PROV_SEARCH_DIRS = [
+    (_BASE_DIR / "xlsx" / "proventos-recebidos", "proventos-recebidos"),
+    (_BASE_DIR / "xlsx", "proventos-recebidos"),
 ]
 
 
@@ -95,14 +101,33 @@ def load_default_posicao(qualidade: RelatorioQualidade | None = None) -> pd.Data
     raise FileNotFoundError(message)
 
 
+def load_default_proventos_recebidos(qualidade: RelatorioQualidade | None = None) -> pd.DataFrame:
+    for folder, prefix in _PROV_SEARCH_DIRS:
+        try:
+            path = find_latest(folder, prefix)
+            if path is None:
+                continue
+            return _safe_call_reader(read_proventos_recebidos_file, path, qualidade)
+        except Exception:
+            continue
+    return pd.DataFrame()
+
+
 # ---------------------------------------------------------------------------
 # Sidebar — carregamento de arquivos
 # ---------------------------------------------------------------------------
 
-def _carregar_dados(uploaded_mov, uploaded_pos, qualidade: RelatorioQualidade | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _carregar_dados(
+    uploaded_mov,
+    uploaded_pos,
+    uploaded_prov=None,
+    qualidade: RelatorioQualidade | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     mov_df = _safe_call_reader(read_movimentacao_file, uploaded_mov, qualidade) if uploaded_mov is not None else load_default_movimentacao(qualidade=qualidade)
     pos_df = _safe_call_reader(read_posicao_file, uploaded_pos, qualidade) if uploaded_pos is not None else load_default_posicao(qualidade=qualidade)
-    return mov_df.copy(), pos_df.copy()
+    prov_df = _safe_call_reader(read_proventos_recebidos_file, uploaded_prov, qualidade) if uploaded_prov is not None else load_default_proventos_recebidos(qualidade=qualidade)
+    return mov_df.copy(), pos_df.copy(), prov_df.copy()
+
 
 
 # ---------------------------------------------------------------------------
@@ -148,12 +173,13 @@ def main():
     st.sidebar.header("Arquivos")
     uploaded_mov = st.sidebar.file_uploader("Movimentação (XLSX)", type=["xlsx", "xls"], key="movimentacao")
     uploaded_pos = st.sidebar.file_uploader("Posição (XLSX)", type=["xlsx", "xls"], key="posicao")
+    uploaded_prov = st.sidebar.file_uploader("Proventos Recebidos (XLSX)", type=["xlsx", "xls"], key="proventos_recebidos")
 
     qualidade = RelatorioQualidade()
-    mov_df, pos_df = _carregar_dados(uploaded_mov, uploaded_pos, qualidade=qualidade)
+    mov_df, pos_df, prov_df = _carregar_dados(uploaded_mov, uploaded_pos, uploaded_prov, qualidade=qualidade)
 
-    if mov_df.empty and pos_df.empty:
-        st.warning("Nenhum arquivo válido foi encontrado. Faça upload de movimentação e/ou posição da B3.")
+    if mov_df.empty and pos_df.empty and prov_df.empty:
+        st.warning("Nenhum arquivo válido foi encontrado. Faça upload de movimentação, posição e/ou proventos da B3.")
         st.stop()
 
     pendentes = listar_movimentacoes_pendentes(mov_df)
@@ -164,17 +190,24 @@ def main():
 
     mov_filtered = filtrar_dataframe(mov_df, instituicoes=selected_inst, produtos=selected_prod, start_date=start_date, end_date=end_date)
     pos_filtered = filtrar_dataframe(pos_df, instituicoes=selected_inst, produtos=selected_prod)
+    prov_filtered = (
+        filtrar_dataframe(prov_df, instituicoes=selected_inst, produtos=selected_prod, start_date=start_date, end_date=end_date)
+        if not prov_df.empty
+        else pd.DataFrame()
+    )
 
     state = DashboardState.build(
         pos_df=pos_df,
         mov_df=mov_df,
         mov_filtered=mov_filtered,
         pos_filtered=pos_filtered,
+        prov_recebidos_df=prov_filtered,
         end_date=end_date,
         produtos_selecionados=selected_prod,
         instituicoes_selecionadas=selected_inst,
         qualidade=qualidade,
     )
+
 
     for msg in mensagens(state.qualidade):
         st.warning(msg)

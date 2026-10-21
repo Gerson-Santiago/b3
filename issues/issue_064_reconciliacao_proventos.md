@@ -1,7 +1,7 @@
 # Issue 6.4 — Cruzamento e Reconciliação de Proventos (`metrics/reconciliacao_proventos.py`)
 
 **Fase:** 6 — Loader de Proventos Recebidos
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 4–5 horas
 **Dependência:** Issue 6.3 ✅ (loader proventos) + `models/eventos.py` ✅
 
@@ -17,15 +17,16 @@ Atualmente, a reconciliação do dashboard audita apenas a **quantidade de ativo
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Função `reconciliar_proventos(mov_df: pd.DataFrame, prov_df: pd.DataFrame) -> pd.DataFrame` implementada em `dashboard/metrics/reconciliacao_proventos.py`.
-- [ ] O DataFrame resultante deve conter:
+- [x] Função `reconciliar_proventos(mov_df: pd.DataFrame, prov_df: pd.DataFrame) -> pd.DataFrame` implementada em `dashboard/metrics/reconciliacao_proventos.py`.
+- [x] O DataFrame resultante deve conter:
   - `ativo` / `ticker`
   - `total_movimentacao` (soma de proventos creditados na movimentação)
   - `total_extrato_proventos` (soma de proventos no arquivo dedicado)
   - `delta` (`total_movimentacao - total_extrato_proventos`)
   - `status` (`"OK"` ou `"Divergente"`)
-- [ ] Agrupamento flexível por ativo e por mês/ano.
-- [ ] Testes unitários em `tests/test_reconciliacao_proventos.py` com cenários 100% conciliados, diferenças de centavos por arredondamento e divergências reais.
+- [x] Agrupamento flexível por ativo e por mês/ano.
+- [x] Testes unitários em `tests/test_reconciliacao_proventos.py` com cenários 100% conciliados, diferenças de centavos por arredondamento e divergências reais.
+
 
 ---
 

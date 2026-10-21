@@ -1,11 +1,12 @@
 # Issue 6.5 — Seção de Reconciliação de Proventos na View (`views/reconciliacao.py`)
 
 **Fase:** 6 — Loader de Proventos Recebidos
-**Status:** ⏳ Backlog
+**Status:** ✅ Concluído
 **Estimativa:** 2–3 horas
 **Dependência:** Issue 6.4 ✅ (métrica de reconciliação de proventos)
 
 > **Princípio:** Seguir o fluxo de refatoração: **1. Proteja** (testes de renderização/smoke da view) → **2. Isole a Verdade (SSoT)** (view consome apenas resultados já calculados no `DashboardState`) → **3. Elimine a Duplicação (DRY)** (reutilizar componentes de cards de alerta/sucesso) → **4. Divida (SRP)** (view apenas exibe os dados, sem regras de matching).
+
 
 ---
 
@@ -17,11 +18,12 @@ Com o cálculo de reconciliação de proventos pronto (Issue 6.4), o usuário pr
 
 ## Critérios de Aceite (Definition of Done)
 
-- [ ] Nova seção adicionada na aba de reconciliação (`views/reconciliacao.py`): `"### Reconciliação de Proventos (Movimentação vs Extrato de Proventos)"`.
-- [ ] Exibição de tabela interativa com status de conciliação.
-- [ ] Mensagens de alerta (`st.warning`) se houver divergência ou sucesso (`st.success`) se todos os proventos baterem.
-- [ ] `app.py` e `DashboardState` atualizados para carregar o arquivo padrão de proventos recebidos se disponível.
-- [ ] Teste de fumaça na view garantindo que a renderização ocorre sem exceções quando há e quando não há dados.
+- [x] Nova seção adicionada na aba de reconciliação (`views/reconciliacao.py`): `"### Reconciliação de Proventos (Movimentação vs Extrato de Proventos)"`.
+- [x] Exibição de tabela interativa com status de conciliação.
+- [x] Mensagens de alerta (`st.warning`) se houver divergência ou sucesso (`st.success`) se todos os proventos baterem.
+- [x] `app.py` e `DashboardState` atualizados para carregar o arquivo padrão de proventos recebidos se disponível.
+- [x] Teste de fumaça na view garantindo que a renderização ocorre sem exceções quando há e quando não há dados.
+
 
 ---
 

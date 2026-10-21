@@ -8,6 +8,7 @@ import pandas as pd
 import dashboard.app as app
 from dashboard.aliases.movimentacao import ALIASES_MOV
 from dashboard.aliases.posicao import ALIASES_POS
+from dashboard.aliases.proventos_recebidos import ALIASES_PROV_RECEBIDOS
 from dashboard.columns import normaliza_colunas
 from dashboard.loader import read_b3_file
 from dashboard.loaders.movimentacao import parse_money, read_movimentacao_file
@@ -72,6 +73,23 @@ class B3ColumnsAndParsingTest(unittest.TestCase):
         self.assertIn("Produto", ALIASES_POS["produto"])
         self.assertIn("Código de Negociação", ALIASES_POS["codigo_negociacao"])
         self.assertIn("Valor Atualizado", ALIASES_POS["valor_atualizado"])
+        self.assertIn("Pagamento", ALIASES_PROV_RECEBIDOS["data_pagamento"])
+        self.assertIn("Tipo de Evento", ALIASES_PROV_RECEBIDOS["tipo_evento"])
+        self.assertIn("Valor líquido", ALIASES_PROV_RECEBIDOS["valor_liquido"])
+
+    def test_aliases_proventos_recebidos_has_no_collisions(self):
+        from dashboard.aliases.common import normalize_alias
+        seen = {}
+        for canonical, labels in ALIASES_PROV_RECEBIDOS.items():
+            for label in labels:
+                norm = normalize_alias(label)
+                if norm in seen:
+                    self.assertEqual(
+                        seen[norm],
+                        canonical,
+                        f"Colisão detectada para '{norm}': mapeado para '{seen[norm]}' e '{canonical}'",
+                    )
+                seen[norm] = canonical
 
 
 class B3LoaderDispatchTest(unittest.TestCase):
