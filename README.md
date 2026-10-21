@@ -69,16 +69,28 @@ pip install -r requirements.txt
 
 ### 3. Execução do Dashboard
 
-* **No Windows (atalho rápido):**
-  Basta dar um duplo clique no script:
+* **No Windows — duplo clique (CMD):**
   ```cmd
   run_dashboard.bat
   ```
 
-* **Via terminal:**
-  ```bash
-  streamlit run dashboard/app.py
+* **No Windows — PowerShell:**
+  ```powershell
+  .\run_dashboard.ps1
   ```
+
+* **Via terminal (CMD/PowerShell) — configurando PYTHONPATH manualmente:**
+  ```powershell
+  # PowerShell
+  $env:PYTHONPATH = "."; .\.venv\Scripts\streamlit run dashboard/app.py
+  ```
+  ```cmd
+  :: CMD
+  set PYTHONPATH=%CD% && .venv\Scripts\streamlit run dashboard/app.py
+  ```
+
+> **Nota:** É obrigatório definir `PYTHONPATH` apontando para a raiz do projeto.
+> O comando `streamlit run dashboard/app.py` sem `PYTHONPATH` resulta em `ModuleNotFoundError: No module named 'dashboard'`.
 
 ---
 
