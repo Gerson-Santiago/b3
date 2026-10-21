@@ -72,3 +72,6 @@ def test_render_proventos_com_dados(
 
     assert mock_chart.call_count >= 2
     assert mock_df.call_count >= 2
+    for call in mock_df.call_args_list:
+        assert call.kwargs.get("width") != "stretch"
+        assert call.kwargs.get("use_container_width") is True

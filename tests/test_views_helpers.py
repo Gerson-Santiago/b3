@@ -18,6 +18,7 @@ from dashboard.views._helpers import (
     _obter_tipo_e_grupo,
     _render_card,
     _svg_icon_html,
+    format_moeda_brl,
     render_cards_grid,
     render_section,
 )
@@ -266,6 +267,24 @@ class TestRenderCard:
     @patch("streamlit.markdown")
     @patch("streamlit.columns")
     @patch("streamlit.container")
+    def test_tesouro_usa_rotulo_pu_medio(self, mock_container, mock_cols, mock_md):
+        mock_container.return_value.__enter__ = lambda s: s
+        mock_container.return_value.__exit__ = MagicMock(return_value=False)
+        col1, col2 = self._col_mock(), self._col_mock()
+        mock_cols.return_value = [col1, col2]
+        _render_card(self._make_row(
+            produto="Tesouro Selic 2028",
+            categoria="TESOURO",
+            quantidade=0.01,
+            preco_medio=16758.0,
+            custo_total=167.58,
+        ))
+        metric_labels = [call.args[0] for call in col2.metric.call_args_list]
+        assert "PU Médio (1 título)" in metric_labels
+
+    @patch("streamlit.markdown")
+    @patch("streamlit.columns")
+    @patch("streamlit.container")
     def test_sem_custo_delta_off_renderiza_ok(self, mock_container, mock_cols, mock_md):
         """Quando custo_total == 0, o delta deve ser 'off' (neutro) sem erros."""
         mock_container.return_value.__enter__ = lambda s: s
@@ -273,6 +292,28 @@ class TestRenderCard:
         mock_cols.return_value = [self._col_mock(), self._col_mock()]
         _render_card(self._make_row(custo_total=0.0, pl=0.0, variacao_pct=0.0))
         assert mock_md.called
+
+
+# ---------------------------------------------------------------------------
+# format_moeda_brl
+# ---------------------------------------------------------------------------
+
+class TestFormatMoedaBrl:
+    def test_formata_valor_padrao(self):
+        assert format_moeda_brl(2943.59) == "R$ 2.943,59"
+
+    def test_formata_centavos(self):
+        assert format_moeda_brl(0.12) == "R$ 0,12"
+
+    def test_formata_milhares_e_milhoes(self):
+        assert format_moeda_brl(1234567.89) == "R$ 1.234.567,89"
+
+    def test_formata_zero(self):
+        assert format_moeda_brl(0) == "R$ 0,00"
+
+    def test_retorna_traco_para_none_ou_nan(self):
+        assert format_moeda_brl(None) == "—"
+        assert format_moeda_brl(float("nan")) == "—"
 
 
 # ---------------------------------------------------------------------------

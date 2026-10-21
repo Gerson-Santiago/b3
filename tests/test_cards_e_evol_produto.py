@@ -160,6 +160,21 @@ class TestEnriquecerPosCards:
         result = _enriquecer_pos_cards(pos, pm)
         assert result.loc[0, "variacao_pct"] == pytest.approx(0.0)
 
+    def test_fallback_valor_aplicado_quando_sem_custo(self):
+        pos = pd.DataFrame({
+            "produto": ["Tesouro Educa+ 2026"],
+            "categoria": ["TESOURO"],
+            "quantidade": [0.13],
+            "valor_abs": [451.66],
+            "valor_aplicado": [469.42],
+        })
+        pm = pd.DataFrame(columns=["produto", "preco_medio", "custo_total"])
+        result = _enriquecer_pos_cards(pos, pm)
+        assert result.loc[0, "custo_total"] == pytest.approx(469.42)
+        assert result.loc[0, "preco_medio"] == pytest.approx(469.42 / 0.13, rel=1e-2)
+        assert result.loc[0, "pl"] == pytest.approx(451.66 - 469.42, abs=0.02)
+        assert result.loc[0, "variacao_pct"] < 0
+
     def test_pl_negativo_quando_prejuizo(self):
         pos = pd.DataFrame({"produto": ["PETR4"], "categoria": ["AÇÕES"],
                              "quantidade": [10.0], "valor_abs": [400.0]})
