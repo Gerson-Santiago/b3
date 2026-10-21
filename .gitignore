@@ -49,3 +49,7 @@ fork/
 
 # Logs
 *.log
+
+# Archives / backups
+*.zip
+

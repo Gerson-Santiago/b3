@@ -1,4 +1,5 @@
 @echo off
 cd /d "%~dp0"
 set PYTHONPATH=%CD%
-python -m streamlit run dashboard/app.py
+".venv\Scripts\python.exe" -m streamlit run dashboard/app.py
+pause

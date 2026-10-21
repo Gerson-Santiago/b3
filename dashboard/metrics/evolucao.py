@@ -33,8 +33,12 @@ def compute_curva_aportes(mov_df: pd.DataFrame) -> pd.DataFrame:
     df["sinal"] = df.apply(_sinal_operacao, axis=1)
     df["fluxo_aporte"] = df["valor_liquido"].abs() * df["sinal"]
 
-    aportes = df.groupby(df["data"].dt.normalize(), as_index=False)["fluxo_aporte"].sum()
-    aportes.columns = ["data", "aporte_periodo"]
+    df["data_periodo"] = df["data"].dt.normalize()
+    aportes = (
+        df.groupby("data_periodo", as_index=False)["fluxo_aporte"]
+        .sum()
+        .rename(columns={"data_periodo": "data", "fluxo_aporte": "aporte_periodo"})
+    )
     aportes["custo_acumulado"] = aportes["aporte_periodo"].cumsum()
     return aportes
 
