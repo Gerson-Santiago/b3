@@ -7,11 +7,11 @@ from typing import Union
 from dashboard.utils import find_latest
 
 try:
-    from dashboard.loaders.movimentacao import read_movimentacao_file as read_b3_csv
-    from dashboard.loaders.posicao import read_posicao_file as read_b3_excel
+    from dashboard.loaders.movimentacao import read_movimentacao_file
+    from dashboard.loaders.posicao import read_posicao_file
 except ImportError:  # pragma: no cover
-    from loaders.movimentacao import read_movimentacao_file as read_b3_csv
-    from loaders.posicao import read_posicao_file as read_b3_excel
+    from loaders.movimentacao import read_movimentacao_file
+    from loaders.posicao import read_posicao_file
 
 
 def read_b3_file(file_source: Union[str, Path, BytesIO]):
@@ -22,15 +22,15 @@ def read_b3_file(file_source: Union[str, Path, BytesIO]):
         name = str(getattr(file_source, "name", "")).lower()
         if name.endswith((".xlsx", ".xls")):
             try:
-                return read_b3_excel(file_source)
+                return read_posicao_file(file_source)
             except Exception:
-                return read_b3_csv(file_source)
-        return read_b3_csv(file_source)
+                return read_movimentacao_file(file_source)
+        return read_movimentacao_file(file_source)
 
     path = Path(file_source)
     if path.suffix.lower() in {".xlsx", ".xls"}:
         try:
-            return read_b3_excel(path)
+            return read_posicao_file(path)
         except Exception:
-            return read_b3_csv(path)
-    return read_b3_csv(path)
+            return read_movimentacao_file(path)
+    return read_movimentacao_file(path)

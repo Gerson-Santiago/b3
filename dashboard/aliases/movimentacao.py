@@ -1,4 +1,3 @@
-from dashboard.aliases.common import normalize_alias
 
 ALIASES_MOV = {
     "entrada_saida": ["Entrada/Saída", "Entrada/Saida", "entrada_saida"],
@@ -12,4 +11,4 @@ ALIASES_MOV = {
 }
 
 
-__all__ = ["ALIASES_MOV", "normalize_alias"]
+__all__ = ["ALIASES_MOV"]

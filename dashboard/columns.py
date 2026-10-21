@@ -1,13 +1,9 @@
 try:
     from dashboard.aliases.common import build_lookup, normalize_alias
     from dashboard.aliases.movimentacao import ALIASES_MOV
-    from dashboard.aliases.posicao import ALIASES_POS
 except ImportError:  # pragma: no cover
     from aliases.common import build_lookup, normalize_alias
     from aliases.movimentacao import ALIASES_MOV
-    from aliases.posicao import ALIASES_POS
-
-ALIASES = ALIASES_MOV
 
 
 def normaliza_colunas(df, aliases=None):

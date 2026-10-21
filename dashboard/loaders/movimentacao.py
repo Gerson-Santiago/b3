@@ -10,9 +10,11 @@ from dashboard.models.movimentacao import SINAL_ENTRADA_SAIDA
 from dashboard.utils import parse_money, parse_qtd
 
 try:
-    from dashboard.columns import ALIASES_MOV, normaliza_colunas
+    from dashboard.aliases.movimentacao import ALIASES_MOV
+    from dashboard.columns import normaliza_colunas
 except ImportError:  # pragma: no cover
-    from columns import ALIASES_MOV, normaliza_colunas
+    from aliases.movimentacao import ALIASES_MOV
+    from columns import normaliza_colunas
 
 
 def _read_csv_with_encodings(path_or_buffer):
@@ -127,6 +129,3 @@ def read_movimentacao_file(file_source: Union[str, Path, BytesIO, object], quali
         return read_movimentacao_excel(path, qualidade=qualidade)
     return read_movimentacao_csv(path, qualidade=qualidade)
 
-
-def load_movimentacao(file_source, qualidade: Any = None):
-    return read_movimentacao_file(file_source, qualidade=qualidade)

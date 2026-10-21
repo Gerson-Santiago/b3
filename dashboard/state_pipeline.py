@@ -94,7 +94,7 @@ def enriquecer_pos_cards(pos: pd.DataFrame, pm_df: pd.DataFrame) -> pd.DataFrame
         return pd.DataFrame(columns=_COLUNAS_CARDS_VAZIA)
 
     cards = pos.copy()
-    colunas_base = [c for c in ["produto", "categoria", "quantidade", "valor_abs"] if c in cards.columns]
+    colunas_base = [c for c in ["produto", "categoria", "quantidade", "valor_abs", "valor_aplicado"] if c in cards.columns]
     cards = cards[colunas_base].copy()
 
     if not pm_df.empty:
@@ -118,6 +118,16 @@ def enriquecer_pos_cards(pos: pd.DataFrame, pm_df: pd.DataFrame) -> pd.DataFrame
 
     cards["preco_medio"] = pd.to_numeric(cards["preco_medio"], errors="coerce").fillna(0.0)
     cards["custo_total"] = pd.to_numeric(cards["custo_total"], errors="coerce").fillna(0.0)
+
+    if "valor_aplicado" in cards.columns:
+        cards["valor_aplicado"] = pd.to_numeric(cards["valor_aplicado"], errors="coerce").fillna(0.0)
+        mask_fallback = (cards["custo_total"] == 0) & (cards["valor_aplicado"] > 0)
+        cards.loc[mask_fallback, "custo_total"] = cards.loc[mask_fallback, "valor_aplicado"]
+        mask_pm = mask_fallback & (cards["quantidade"] > 0)
+        cards.loc[mask_pm, "preco_medio"] = (
+            cards.loc[mask_pm, "custo_total"] / cards.loc[mask_pm, "quantidade"]
+        ).round(2)
+
     cards["pl"] = (cards["valor_abs"] - cards["custo_total"]).round(2)
     cards["variacao_pct"] = cards.apply(
         lambda r: round((r["pl"] / r["custo_total"]) * 100, 2) if r["custo_total"] else 0.0,

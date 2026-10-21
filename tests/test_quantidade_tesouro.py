@@ -173,7 +173,8 @@ class TestLoaderMovimentacaoQuantidadeTesouro:
 
     def _normalizar(self, raw: pd.DataFrame) -> pd.DataFrame:
         from dashboard.loaders.movimentacao import _normalize_movimentacao_df
-        from dashboard.columns import ALIASES_MOV, normaliza_colunas
+        from dashboard.aliases.movimentacao import ALIASES_MOV
+        from dashboard.columns import normaliza_colunas
 
         raw.columns = [str(c).strip() for c in raw.columns]
         df = normaliza_colunas(raw, ALIASES_MOV)

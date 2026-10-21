@@ -14,7 +14,7 @@ def test_read_b3_file_none_lanca_excecao():
         read_b3_file(None)
 
 
-@patch("dashboard.loader.read_b3_excel", return_value=pd.DataFrame({"a": [1]}))
+@patch("dashboard.loader.read_posicao_file", return_value=pd.DataFrame({"a": [1]}))
 def test_read_b3_file_bytesio_excel(mock_excel):
     buf = BytesIO(b"dummy")
     buf.name = "posicao.xlsx"
@@ -23,8 +23,8 @@ def test_read_b3_file_bytesio_excel(mock_excel):
     mock_excel.assert_called_once()
 
 
-@patch("dashboard.loader.read_b3_excel", side_effect=Exception("erro"))
-@patch("dashboard.loader.read_b3_csv", return_value=pd.DataFrame({"b": [2]}))
+@patch("dashboard.loader.read_posicao_file", side_effect=Exception("erro"))
+@patch("dashboard.loader.read_movimentacao_file", return_value=pd.DataFrame({"b": [2]}))
 def test_read_b3_file_bytesio_fallback_csv(mock_csv, mock_excel):
     buf = BytesIO(b"dummy")
     buf.name = "posicao.xlsx"
@@ -33,7 +33,7 @@ def test_read_b3_file_bytesio_fallback_csv(mock_csv, mock_excel):
     mock_csv.assert_called_once()
 
 
-@patch("dashboard.loader.read_b3_csv", return_value=pd.DataFrame({"c": [3]}))
+@patch("dashboard.loader.read_movimentacao_file", return_value=pd.DataFrame({"c": [3]}))
 def test_read_b3_file_bytesio_csv_direto(mock_csv):
     buf = BytesIO(b"dummy")
     buf.name = "movimentacao.csv"
@@ -42,8 +42,8 @@ def test_read_b3_file_bytesio_csv_direto(mock_csv):
     mock_csv.assert_called_once()
 
 
-@patch("dashboard.loader.read_b3_excel", side_effect=Exception("erro"))
-@patch("dashboard.loader.read_b3_csv", return_value=pd.DataFrame({"d": [4]}))
+@patch("dashboard.loader.read_posicao_file", side_effect=Exception("erro"))
+@patch("dashboard.loader.read_movimentacao_file", return_value=pd.DataFrame({"d": [4]}))
 def test_read_b3_file_path_fallback(mock_csv, mock_excel, tmp_path):
     p = tmp_path / "teste.xlsx"
     p.touch()
@@ -52,7 +52,7 @@ def test_read_b3_file_path_fallback(mock_csv, mock_excel, tmp_path):
     mock_csv.assert_called_once()
 
 
-@patch("dashboard.loader.read_b3_csv", return_value=pd.DataFrame({"e": [5]}))
+@patch("dashboard.loader.read_movimentacao_file", return_value=pd.DataFrame({"e": [5]}))
 def test_read_b3_file_path_csv(mock_csv, tmp_path):
     p = tmp_path / "mov.csv"
     p.touch()

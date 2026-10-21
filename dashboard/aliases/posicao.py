@@ -1,4 +1,3 @@
-from dashboard.aliases.common import normalize_alias
 
 ALIASES_POS = {
     "data_posicao": ["Data da posição", "Data da posicao"],
@@ -16,8 +15,9 @@ ALIASES_POS = {
     "motivo": ["Motivo"],
     "preco_fechamento": ["Preço de Fechamento", "Preco de Fechamento"],
     "valor_atualizado": ["Valor Atualizado"],
+    "valor_aplicado": ["Valor Aplicado"],
     "categoria": ["Categoria"],
 }
 
 
-__all__ = ["ALIASES_POS", "normalize_alias"]
+__all__ = ["ALIASES_POS"]

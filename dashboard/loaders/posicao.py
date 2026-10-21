@@ -9,9 +9,11 @@ import pandas as pd
 from dashboard.utils import parse_money, parse_qtd
 
 try:
-    from dashboard.columns import ALIASES_POS, normaliza_colunas
+    from dashboard.aliases.posicao import ALIASES_POS
+    from dashboard.columns import normaliza_colunas
 except ImportError:  # pragma: no cover
-    from columns import ALIASES_POS, normaliza_colunas
+    from aliases.posicao import ALIASES_POS
+    from columns import normaliza_colunas
 
 
 def _categorizar_sheet(sheet_name: str) -> str:
@@ -49,6 +51,9 @@ def read_posicao_excel(file_source: Union[str, Path, BytesIO, object], qualidade
 
         if "valor_operacao" in df.columns:
             df["valor_operacao"] = df["valor_operacao"].apply(parse_money)
+
+        if "valor_aplicado" in df.columns:
+            df["valor_aplicado"] = df["valor_aplicado"].apply(parse_money)
 
         if "quantidade" in df.columns:
             df["quantidade"] = df["quantidade"].apply(parse_qtd)
@@ -114,6 +119,3 @@ def read_posicao_file(file_source: Union[str, Path, BytesIO, object], qualidade:
         return read_posicao_excel(path, qualidade=qualidade)
     return pd.DataFrame()
 
-
-def load_posicao(file_source, qualidade: Any = None):
-    return read_posicao_file(file_source, qualidade=qualidade)
