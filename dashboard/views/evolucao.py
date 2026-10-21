@@ -77,4 +77,4 @@ def render(state: DashboardState) -> None:
 
     if not state.mov_filtered.empty:
         st.markdown("### Detalhamento das Movimentações")
-        st.dataframe(state.mov_filtered, width="stretch")
+        st.dataframe(state.mov_filtered, use_container_width=True)

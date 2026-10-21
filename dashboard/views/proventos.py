@@ -49,7 +49,7 @@ def render(state: DashboardState) -> None:
             state.dy_metrics[
                 ["ticker", "valor_atual", "custo_total", "proventos_12m", "dy_ltm_pct", "yield_on_cost_pct"]
             ],
-            width="stretch",
+            use_container_width=True,
         )
 
     st.markdown("### Calendário de Proventos Recebidos")

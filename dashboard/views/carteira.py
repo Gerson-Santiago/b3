@@ -15,7 +15,7 @@ try:
     )
     from dashboard.models.categorias import CATEGORIA_TESOURO, CATEGORIAS_BOLSA
     from dashboard.state import DashboardState
-    from dashboard.views._helpers import render_cards_grid, render_section
+    from dashboard.views._helpers import format_moeda_brl, render_cards_grid, render_section
 except ImportError:  # pragma: no cover
     from charts import (
         bar_distribuicao_ativos,
@@ -28,35 +28,51 @@ except ImportError:  # pragma: no cover
     )
     from models.categorias import CATEGORIA_TESOURO, CATEGORIAS_BOLSA
     from state import DashboardState
-    from views._helpers import render_cards_grid, render_section
-
+    from views._helpers import format_moeda_brl, render_cards_grid, render_section
 
 
 def _render_cards_macro(res) -> None:
     """Renderiza os cards de métricas macro (Bolsa de Valores e Tesouro Direto)."""
     col_b, col_t = st.columns(2)
     with col_b:
-        delta_b = f"{res.bolsa.pl:+,.2f} ({res.bolsa.pl_pct:+.2f}%)" if res.bolsa.custo > 0 else None
+        if res.bolsa.custo > 0:
+            s_pl_b = format_moeda_brl(abs(res.bolsa.pl))
+            s_pct_b = f"{abs(res.bolsa.pl_pct):.2f}".replace(".", ",")
+            delta_b = f"{'+' if res.bolsa.pl >= 0 else '-'}{s_pl_b} ({'+' if res.bolsa.pl_pct >= 0 else '-'}{s_pct_b}%)"
+        else:
+            delta_b = None
+
         st.metric(
             "Bolsa de Valores (Ações & BDR)",
-            f"R$ {res.bolsa.patrimonio:,.2f}",
+            format_moeda_brl(res.bolsa.patrimonio),
             delta=delta_b,
         )
-        st.caption(f"**Peso:** {res.bolsa.peso_pct:.1f}% &nbsp;|&nbsp; **Custo:** R$ {res.bolsa.custo:,.2f}")
+        peso_b_str = f"{res.bolsa.peso_pct:.1f}%".replace(".", ",")
+        st.caption(f"**Peso:** {peso_b_str} &nbsp;|&nbsp; **Custo:** {format_moeda_brl(res.bolsa.custo)}")
 
     with col_t:
-        delta_t = f"{res.tesouro.pl:+,.2f} ({res.tesouro.pl_pct:+.2f}%)" if res.tesouro.custo > 0 else None
+        if res.tesouro.custo > 0:
+            s_pl_t = format_moeda_brl(abs(res.tesouro.pl))
+            s_pct_t = f"{abs(res.tesouro.pl_pct):.2f}".replace(".", ",")
+            delta_t = f"{'+' if res.tesouro.pl >= 0 else '-'}{s_pl_t} ({'+' if res.tesouro.pl_pct >= 0 else '-'}{s_pct_t}%)"
+        else:
+            delta_t = None
+
         st.metric(
             "Tesouro Direto (Renda Fixa)",
-            f"R$ {res.tesouro.patrimonio:,.2f}",
+            format_moeda_brl(res.tesouro.patrimonio),
             delta=delta_t,
         )
-        st.caption(f"**Peso:** {res.tesouro.peso_pct:.1f}% &nbsp;|&nbsp; **Custo:** R$ {res.tesouro.custo:,.2f}")
+        peso_t_str = f"{res.tesouro.peso_pct:.1f}%".replace(".", ",")
+        st.caption(f"**Peso:** {peso_t_str} &nbsp;|&nbsp; **Custo:** {format_moeda_brl(res.tesouro.custo)}")
 
     if res.patrimonio_total > 0:
+        s_pl_tot = format_moeda_brl(abs(res.pl_total))
+        s_pct_tot = f"{abs(res.pl_pct):.2f}".replace(".", ",")
+        pl_tot_str = f"{'+' if res.pl_total >= 0 else '-'}{s_pl_tot} ({'+' if res.pl_pct >= 0 else '-'}{s_pct_tot}%)"
         st.caption(
-            f"**Patrimônio Consolidado:** R$ {res.patrimonio_total:,.2f} &nbsp;|&nbsp; "
-            f"**Lucro/Prejuízo Total:** {res.pl_total:+,.2f} ({res.pl_pct:+.2f}%)"
+            f"**Patrimônio Consolidado:** {format_moeda_brl(res.patrimonio_total)} &nbsp;|&nbsp; "
+            f"**Lucro/Prejuízo Total:** {pl_tot_str}"
         )
 
 
