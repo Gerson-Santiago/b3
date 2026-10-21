@@ -9,7 +9,7 @@ from dashboard.loaders.posicao import read_posicao_file
 from dashboard.metrics.preco_medio import compute_preco_medio
 from dashboard.metrics.reconciliacao import quantidade_ate, comparar
 from dashboard.models.ativos import resolver_ativo
-from dashboard.metrics.position import obter_categoria_ativo, mapear_categorias_posicao, compute_position_categoria
+from dashboard.metrics.position import obter_mapa_categorias, classificar_ativo_por_mapa, compute_position_categoria
 from dashboard.metrics.dy import compute_dy_metrics
 from dashboard.metrics.evolucao import compute_evolucao_separada
 
@@ -49,15 +49,15 @@ def test_tdd_migracao_nubank_fechamento_20_cotas_sem_somar_atualizacao():
 
 def test_tdd_consulta_categoria_via_posicao_sem_regex():
     pos = read_posicao_file(POS_FIXTURE)
-    mapa = mapear_categorias_posicao(pos)
+    mapa = obter_mapa_categorias(pos)
     
-    assert obter_categoria_ativo("PETR4", mapa) == "AÇÕES"
-    assert obter_categoria_ativo("GOGL35", mapa) == "BDR"
-    assert obter_categoria_ativo("MSFT34", mapa) == "BDR"
+    assert classificar_ativo_por_mapa("PETR4", mapa) == "AÇÕES"
+    assert classificar_ativo_por_mapa("GOGL35", mapa) == "BDR"
+    assert classificar_ativo_por_mapa("MSFT34", mapa) == "BDR"
     
     # Ativo com final 11 que NÃO está na posição não deve ser forçado para BDR por regex
-    assert obter_categoria_ativo("XPML11", mapa) == "Não classificado"
-    assert obter_categoria_ativo("TAEE11", mapa) == "Não classificado"
+    assert classificar_ativo_por_mapa("XPML11", mapa) == "Não classificado"
+    assert classificar_ativo_por_mapa("TAEE11", mapa) == "Não classificado"
 
 
 def test_tdd_dy_ltm_e_yield_on_cost():

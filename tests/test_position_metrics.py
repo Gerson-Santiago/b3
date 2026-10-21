@@ -5,6 +5,8 @@ import pandas as pd
 import pytest
 
 from dashboard.metrics.position import (
+    COLUNAS_CATEGORIA,
+    COLUNAS_POSICAO,
     classificar_ativo,
     classificar_ativo_por_mapa,
     compute_position,
@@ -122,4 +124,41 @@ def test_compute_position_por_categoria():
         "AÇÕES",
     )
     assert len(pos_sem_cat) == 1
+
+
+# ---------------------------------------------------------------------------
+# Etapa 1 — Contratos de colunas em retornos vazios (SSoT)
+# ---------------------------------------------------------------------------
+
+def test_compute_position_empty_columns():
+    """Retorno vazio deve sempre conter COLUNAS_POSICAO."""
+    assert list(compute_position(None).columns) == COLUNAS_POSICAO
+    assert list(compute_position(pd.DataFrame()).columns) == COLUNAS_POSICAO
+
+
+def test_compute_position_categoria_empty_columns():
+    """Retorno vazio deve sempre conter COLUNAS_CATEGORIA."""
+    assert list(compute_position_categoria(None).columns) == COLUNAS_CATEGORIA
+    assert list(compute_position_categoria(pd.DataFrame()).columns) == COLUNAS_CATEGORIA
+
+
+def test_compute_position_por_categoria_empty_columns():
+    """Retorno vazio deve sempre conter COLUNAS_POSICAO."""
+    result = compute_position_por_categoria(None, "Ações")
+    assert list(result.columns) == COLUNAS_POSICAO
+
+
+def test_compute_position_com_valor_aplicado():
+    """Quando o DataFrame de entrada contém valor_aplicado, ele deve ser preservado."""
+    df = pd.DataFrame(
+        {
+            "produto": ["VALE3"],
+            "quantidade": [100],
+            "valor_operacao": [6500.0],
+            "valor_aplicado": [6000.0],
+        }
+    )
+    pos = compute_position(df)
+    assert "valor_aplicado" in pos.columns
+    assert pos["valor_aplicado"].iloc[0] == pytest.approx(6000.0)
 
